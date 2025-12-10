@@ -66,8 +66,14 @@ export default function AdminPage() {
     const [isGameActive, setIsGameActive] = useState(false);
     const [currentTime, setCurrentTime] = useState(Date.now());
 
+    // --- Authentication State ---
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [adminPasswordInput, setAdminPasswordInput] = useState('');
+
     // --- Effects (Logic Preserved) ---
     useEffect(() => {
+        if (!isAuthenticated) return; // Only subscribe if authenticated
+
         const unsubConfig = onSnapshot(doc(db, "config", "game_settings"), (doc) => {
             if (doc.exists()) {
                 setIsGameActive(doc.data().isGameActive);
@@ -90,7 +96,7 @@ export default function AdminPage() {
             unsubTeams();
             clearInterval(timer);
         };
-    }, []);
+    }, [isAuthenticated]);
 
     const sortedTeams = [...teams].sort((a, b) => {
         if (a.current_stage !== b.current_stage) {
@@ -158,6 +164,55 @@ export default function AdminPage() {
         }
     };
 
+    const handleLogin = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (adminPasswordInput === 'Techquest_25') {
+            setIsAuthenticated(true);
+        } else {
+            alert("Access Denied: The spell was incorrect.");
+            setAdminPasswordInput('');
+        }
+    };
+
+
+    if (!isAuthenticated) {
+        return (
+            <div className="min-h-screen relative overflow-hidden font-cinzel text-starlight flex items-center justify-center bg-black">
+                {/* Background: Deep Space Nebula (Unsplash) */}
+                <div className="absolute inset-0 z-0 opacity-60">
+                    <div
+                        className="absolute inset-0"
+                        style={{
+                            backgroundImage: "url('https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?q=80&w=3872&auto=format&fit=crop')",
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                        }}
+                    />
+                    <div className="absolute inset-0 bg-black/60" />
+                </div>
+
+                <div className="relative z-10 p-8 rounded-2xl bg-[#0a0a0c]/80 backdrop-blur-md border border-[#c5a059]/30 shadow-[0_0_50px_rgba(197,160,89,0.2)] text-center space-y-6 max-w-md w-full mx-4">
+                    <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#fcd34d] via-[#fef3c7] to-[#b45309]">
+                        RESTRICTED AREA
+                    </h1>
+                    <p className="text-[#a8a29e] tracking-widest text-sm">HEADMASTER AUTHORIZATION REQUIRED</p>
+
+                    <form onSubmit={handleLogin} className="space-y-4 pt-4">
+                        <input
+                            type="password"
+                            value={adminPasswordInput}
+                            onChange={(e) => setAdminPasswordInput(e.target.value)}
+                            placeholder="Speak the Password"
+                            className="w-full bg-black/50 border border-[#c5a059]/40 rounded p-3 text-center text-[#fcd34d] placeholder-[#c5a059]/30 focus:border-[#fcd34d] outline-none transition-colors"
+                        />
+                        <button type="submit" className="w-full bg-[#c5a059]/10 hover:bg-[#c5a059]/20 border border-[#c5a059]/50 text-[#fcd34d] py-3 rounded font-bold tracking-widest transition-all uppercase text-sm">
+                            Unlock Portal
+                        </button>
+                    </form>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen relative overflow-hidden font-cinzel text-starlight">
