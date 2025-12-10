@@ -113,7 +113,7 @@ export function StudentLogin({ onLoginSuccess }: { onLoginSuccess: (teamId: stri
     };
 
     return (
-        <div className="relative w-full h-[600px] flex items-center justify-center">
+        <div className="relative w-full h-[600px] flex items-center justify-center overflow-hidden">
 
             {/* 
         ==============================
@@ -125,13 +125,13 @@ export function StudentLogin({ onLoginSuccess }: { onLoginSuccess: (teamId: stri
                 <motion.div
                     animate={{ rotate: 360 }}
                     transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                    className="w-[800px] h-[800px] rounded-full bg-gradient-radial from-[#FFFDD0]/10 via-transparent to-transparent blur-[80px] opacity-40 mix-blend-screen"
+                    className="w-[600px] h-[600px] md:w-[800px] md:h-[800px] rounded-full bg-gradient-radial from-[#FFFDD0]/10 via-transparent to-transparent blur-[60px] md:blur-[80px] opacity-40 mix-blend-screen"
                 />
                 {/* Layer 2 (Counter-rotate) */}
                 <motion.div
                     animate={{ rotate: -360, scale: [1, 1.1, 1] }}
                     transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-                    className="absolute w-[600px] h-[600px] rounded-full bg-gradient-radial from-[#fef3c7]/20 via-transparent to-transparent blur-[60px] opacity-30 mix-blend-screen"
+                    className="absolute w-[400px] h-[400px] md:w-[600px] md:h-[600px] rounded-full bg-gradient-radial from-[#fef3c7]/20 via-transparent to-transparent blur-[40px] md:blur-[60px] opacity-30 mix-blend-screen"
                 />
             </div>
 
@@ -140,11 +140,14 @@ export function StudentLogin({ onLoginSuccess }: { onLoginSuccess: (teamId: stri
         ATMOSPHERE: Floating Candles
         ==============================
       */}
-            <div className="absolute w-[600px] h-[400px] pointer-events-none">
-                <Candle x={-40} y={50} delay={0} scale={0.9} />
-                <Candle x={-120} y={200} delay={1} scale={0.7} />
-                <Candle x={580} y={80} delay={2} scale={0.9} />
-                <Candle x={650} y={250} delay={0.5} scale={0.8} />
+            <div className="absolute w-full h-full max-w-4xl pointer-events-none overflow-hidden">
+                <Candle x={-20} y={50} delay={0} scale={0.6} />
+                {/* Repositioned for mobile */}
+                <div className="hidden md:block">
+                    <Candle x={-120} y={200} delay={1} scale={0.7} />
+                    <Candle x={580} y={80} delay={2} scale={0.9} />
+                </div>
+                <Candle x={300} y={250} delay={0.5} scale={0.8} />
             </div>
 
             {/* 
@@ -152,10 +155,10 @@ export function StudentLogin({ onLoginSuccess }: { onLoginSuccess: (teamId: stri
         THE GRIMOIRE (3D Component)
         ==============================
       */}
-            <div className="relative w-[360px] h-[480px] perspective-1000 group z-20">
+            <div className="relative w-[90%] max-w-[360px] h-[400px] md:h-[480px] perspective-1000 group z-20">
                 <motion.div
                     className="relative w-full h-full transform-style-3d transition-transform duration-1000"
-                    animate={isOpen ? { rotateY: -10, x: 20 } : { rotateY: 0, x: 0 }}
+                    animate={isOpen ? { rotateY: -10, x: 10 } : { rotateY: 0, x: 0 }}
                     initial={{ rotateY: 0 }}
                 >
                     {/* === BACK COVER / SPINE BASE === */}
@@ -170,7 +173,7 @@ export function StudentLogin({ onLoginSuccess }: { onLoginSuccess: (teamId: stri
                     </div>
 
                     {/* === BOOK SPINE === */}
-                    <div className="absolute left-0 top-0 bottom-0 w-[40px] bg-gradient-to-r from-[#1a100e] via-[#3e2723] to-[#1a100e] transform rotateY(-90deg) translate-x-[-20px] rounded-l-sm flex flex-col justify-between py-8 items-center border-l border-r border-[#4e342e]">
+                    <div className="absolute left-0 top-0 bottom-0 w-[30px] md:w-[40px] bg-gradient-to-r from-[#1a100e] via-[#3e2723] to-[#1a100e] transform rotateY(-90deg) translate-x-[-15px] md:translate-x-[-20px] rounded-l-sm flex flex-col justify-between py-8 items-center border-l border-r border-[#4e342e]">
                         {[...Array(5)].map((_, i) => (
                             <div key={i} className="w-full h-[2px] bg-[#5d4037] shadow-[0_1px_1px_rgba(0,0,0,0.5)]" />
                         ))}
@@ -187,37 +190,37 @@ export function StudentLogin({ onLoginSuccess }: { onLoginSuccess: (teamId: stri
                         <div className="absolute inset-0 rounded-r-xl bg-gradient-to-br from-transparent via-[#2d1b18]/50 to-black/60" />
 
                         {/* 2. Gold Filigree */}
-                        <div className="absolute inset-3 border-[2px] border-[#c5a059]/40 rounded-r-lg" />
-                        <div className="absolute inset-5 border-[1px] border-[#c5a059]/20 rounded-r-lg" />
+                        <div className="absolute inset-2 md:inset-3 border-[2px] border-[#c5a059]/40 rounded-r-lg" />
+                        <div className="absolute inset-4 md:inset-5 border-[1px] border-[#c5a059]/20 rounded-r-lg" />
 
                         {/* Corners */}
-                        <div className="absolute top-4 right-4 w-12 h-12 border-t-2 border-r-2 border-[#daa520] rounded-tr-xl" />
-                        <div className="absolute bottom-4 right-4 w-12 h-12 border-b-2 border-r-2 border-[#daa520] rounded-br-xl" />
-                        <div className="absolute top-4 left-4 w-12 h-12 border-t-2 border-l-2 border-[#daa520] rounded-tl-sm" />
-                        <div className="absolute bottom-4 left-4 w-12 h-12 border-b-2 border-l-2 border-[#daa520] rounded-bl-sm" />
+                        <div className="absolute top-4 right-4 w-8 h-8 md:w-12 md:h-12 border-t-2 border-r-2 border-[#daa520] rounded-tr-xl" />
+                        <div className="absolute bottom-4 right-4 w-8 h-8 md:w-12 md:h-12 border-b-2 border-r-2 border-[#daa520] rounded-br-xl" />
+                        <div className="absolute top-4 left-4 w-8 h-8 md:w-12 md:h-12 border-t-2 border-l-2 border-[#daa520] rounded-tl-sm" />
+                        <div className="absolute bottom-4 left-4 w-8 h-8 md:w-12 md:h-12 border-b-2 border-l-2 border-[#daa520] rounded-bl-sm" />
 
                         {/* 3. CONTENT */}
-                        <div className="relative z-10 w-full h-full flex flex-col items-center justify-center p-8 space-y-6">
+                        <div className="relative z-10 w-full h-full flex flex-col items-center justify-center p-4 md:p-8 space-y-4 md:space-y-6">
 
-                            <div className="text-center mb-2">
-                                <h2 className="text-3xl font-cinzel font-bold text-transparent bg-clip-text bg-gradient-to-b from-[#fcd34d] to-[#b45309] drop-shadow-sm tracking-widest">
+                            <div className="text-center mb-1 md:mb-2">
+                                <h2 className="text-2xl md:text-3xl font-cinzel font-bold text-transparent bg-clip-text bg-gradient-to-b from-[#fcd34d] to-[#b45309] drop-shadow-sm tracking-widest">
                                     STUDENT<br />PORTAL
                                 </h2>
-                                <div className="w-24 h-[2px] bg-gradient-to-r from-transparent via-[#daa520] to-transparent mx-auto mt-2" />
+                                <div className="w-16 md:w-24 h-[2px] bg-gradient-to-r from-transparent via-[#daa520] to-transparent mx-auto mt-2" />
                             </div>
 
-                            <form onSubmit={handleLogin} className="w-full space-y-5">
+                            <form onSubmit={handleLogin} className="w-full space-y-3 md:space-y-5">
                                 {/* Parchment Input 1 */}
                                 <div className="relative w-full group">
                                     <div className="absolute inset-0 bg-[#d7ccc8] transform rotate-[-1deg] rounded shadow-md translate-y-[2px]" />
                                     <div className="relative bg-[#f5f5f5] rounded border border-[#a1887f] shadow-inner p-1">
                                         <input
                                             ref={teamIdRef}
-                                            className="w-full bg-[url('https://www.transparenttextures.com/patterns/aged-paper.png')] bg-[#fffdf5] text-[#3e2723] font-cinzel text-lg px-3 py-2 outline-none placeholder-[#8d6e63]"
+                                            className="w-full bg-[url('https://www.transparenttextures.com/patterns/aged-paper.png')] bg-[#fffdf5] text-[#3e2723] font-cinzel text-base md:text-lg px-2 py-1.5 md:px-3 md:py-2 outline-none placeholder-[#8d6e63]"
                                             placeholder="Team Name"
                                             required
                                         />
-                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xl opacity-60">🪶</span>
+                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-lg md:text-xl opacity-60">🪶</span>
                                     </div>
                                 </div>
 
@@ -228,21 +231,21 @@ export function StudentLogin({ onLoginSuccess }: { onLoginSuccess: (teamId: stri
                                         <input
                                             ref={passcodeRef}
                                             type="password"
-                                            className="w-full bg-[url('https://www.transparenttextures.com/patterns/aged-paper.png')] bg-[#fffdf5] text-[#3e2723] font-cinzel text-lg px-3 py-2 outline-none placeholder-[#8d6e63]"
+                                            className="w-full bg-[url('https://www.transparenttextures.com/patterns/aged-paper.png')] bg-[#fffdf5] text-[#3e2723] font-cinzel text-base md:text-lg px-2 py-1.5 md:px-3 md:py-2 outline-none placeholder-[#8d6e63]"
                                             placeholder="Secret Code"
                                             required
                                         />
-                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xl opacity-60">🗝️</span>
+                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-lg md:text-xl opacity-60">🗝️</span>
                                     </div>
                                 </div>
 
                                 {/* Alohomora Clasp Button */}
-                                <div className="pt-4 flex justify-center">
+                                <div className="pt-2 md:pt-4 flex justify-center">
                                     <motion.button
                                         whileHover={{ scale: 1.05 }}
                                         whileTap={{ scale: 0.95 }}
                                         type="submit"
-                                        className="relative py-3 px-10 bg-gradient-to-b from-[#fcd34d] to-[#b45309] text-[#2d1b18] font-cinzel font-bold text-xl rounded-full shadow-[0_4px_6px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.4)] border border-[#78350f]"
+                                        className="relative py-2 px-8 md:py-3 md:px-10 bg-gradient-to-b from-[#fcd34d] to-[#b45309] text-[#2d1b18] font-cinzel font-bold text-lg md:text-xl rounded-full shadow-[0_4px_6px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.4)] border border-[#78350f]"
                                         disabled={loading}
                                     >
                                         <div className="absolute inset-1 border border-[#78350f]/30 rounded-full" />
@@ -255,9 +258,9 @@ export function StudentLogin({ onLoginSuccess }: { onLoginSuccess: (teamId: stri
                         </div>
 
                         {/* Metal Clasp */}
-                        <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-[50%] w-12 h-20 bg-gradient-to-b from-[#78350f] via-[#fcd34d] to-[#78350f] rounded-l shadow-lg flex items-center justify-center border-l border-[#5d4037]">
-                            <div className="w-12 h-12 bg-[#2d1b18] rounded-full flex items-center justify-center transform scale-75 border-2 border-[#daa520]">
-                                <div className="w-2 h-2 bg-[#daa520] rotate-45" />
+                        <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-[50%] w-8 h-12 md:w-12 md:h-20 bg-gradient-to-b from-[#78350f] via-[#fcd34d] to-[#78350f] rounded-l shadow-lg flex items-center justify-center border-l border-[#5d4037]">
+                            <div className="w-8 h-8 md:w-12 md:h-12 bg-[#2d1b18] rounded-full flex items-center justify-center transform scale-75 border-2 border-[#daa520]">
+                                <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-[#daa520] rotate-45" />
                             </div>
                         </div>
 

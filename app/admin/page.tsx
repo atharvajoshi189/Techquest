@@ -231,44 +231,44 @@ export default function AdminPage() {
             </div>
 
             {/* 2. Floating Obsidian Tablet Container */}
-            <div className="relative z-10 w-full min-h-screen p-4 flex flex-col items-center">
+            <div className="relative z-10 w-full min-h-screen p-2 md:p-4 flex flex-col items-center">
 
                 {/* Header Section */}
-                <header className="w-full max-w-7xl flex flex-col items-center mb-8 mt-4 px-8 py-6 rounded-2xl bg-[#0a0a0c]/80 backdrop-blur-md border border-[#c5a059]/30 shadow-[0_0_30px_rgba(0,0,0,0.8)] border-t-[#c5a059]/50">
-                    <div className="w-full flex justify-between items-center mb-6">
+                <header className="w-full max-w-7xl flex flex-col items-center mb-4 md:mb-8 mt-2 md:mt-4 px-4 py-4 md:px-8 md:py-6 rounded-2xl bg-[#0a0a0c]/80 backdrop-blur-md border border-[#c5a059]/30 shadow-[0_0_30px_rgba(0,0,0,0.8)] border-t-[#c5a059]/50">
+                    <div className="w-full flex flex-col md:flex-row justify-between items-center mb-4 md:mb-6 gap-4 md:gap-0">
                         <div className="text-center md:text-left">
-                            <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#fcd34d] via-[#fef3c7] to-[#b45309] drop-shadow-sm tracking-wide">
+                            <h1 className="text-2xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#fcd34d] via-[#fef3c7] to-[#b45309] drop-shadow-sm tracking-wide">
                                 THE TRIWIZARD TOURNAMENT
                             </h1>
-                            <p className="text-[#a8a29e] text-lg tracking-[0.2em] font-orbitron mt-1">
+                            <p className="text-[#a8a29e] text-xs md:text-lg tracking-[0.2em] font-orbitron mt-1">
                                 HEADMASTER&apos;S CONTROL PANEL
                             </p>
                         </div>
 
                         {/* Crystal Orb Status */}
                         <div className="relative group cursor-pointer" onClick={isGameActive ? undefined : handleStartGame}>
-                            <div className={`w-16 h-16 rounded-full border-4 ${isGameActive ? 'border-green-500 bg-green-900/50' : 'border-red-500 bg-red-900/50'} shadow-[0_0_20px_currentColor] flex items-center justify-center relative overflow-hidden transition-all duration-500`}>
+                            <div className={`w-12 h-12 md:w-16 md:h-16 rounded-full border-4 ${isGameActive ? 'border-green-500 bg-green-900/50' : 'border-red-500 bg-red-900/50'} shadow-[0_0_20px_currentColor] flex items-center justify-center relative overflow-hidden transition-all duration-500`}>
                                 <div className={`absolute inset-0 ${isGameActive ? 'bg-green-400' : 'bg-red-500'} blur-xl opacity-40 animate-pulse`} />
                                 {/* Crystal Reflection */}
                                 <div className="absolute top-2 right-3 w-4 h-3 bg-white/40 rounded-full blur-[2px]" />
-                                <span className="relative z-10 text-2xl">{isGameActive ? '⚡' : '🔒'}</span>
+                                <span className="relative z-10 text-lg md:text-2xl">{isGameActive ? '⚡' : '🔒'}</span>
                             </div>
-                            <div className={`absolute top-full mt-2 left-1/2 -translate-x-1/2 text-xs font-bold tracking-widest uppercase whitespace-nowrap px-2 py-1 rounded bg-black/80 border ${isGameActive ? 'border-green-500 text-green-400' : 'border-red-500 text-red-400'}`}>
+                            <div className={`absolute top-full mt-2 left-1/2 -translate-x-1/2 text-[10px] md:text-xs font-bold tracking-widest uppercase whitespace-nowrap px-2 py-1 rounded bg-black/80 border ${isGameActive ? 'border-green-500 text-green-400' : 'border-red-500 text-red-400'}`}>
                                 {isGameActive ? "Active" : "Paused"}
                             </div>
                         </div>
                     </div>
 
                     {/* TAB NAVIGATION */}
-                    <div className="flex gap-8 border-b border-white/10 w-full justify-center md:justify-start">
+                    <div className="flex gap-4 md:gap-8 border-b border-white/10 w-full justify-center md:justify-start overflow-x-auto pb-1">
                         <button
                             onClick={() => setActiveTab('registration')}
-                            className={`pb-3 text-lg font-bold tracking-wider transition-all duration-300 relative ${activeTab === 'registration'
+                            className={`pb-2 md:pb-3 text-sm md:text-lg font-bold tracking-wider transition-all duration-300 relative whitespace-nowrap ${activeTab === 'registration'
                                 ? 'text-[#fcd34d] drop-shadow-[0_0_8px_rgba(252,211,77,0.5)]'
                                 : 'text-white/40 hover:text-white/70'
                                 }`}
                         >
-                            The Great Hall (Registration)
+                            The Great Hall
                             {activeTab === 'registration' && (
                                 <motion.div layoutId="underline" className="absolute bottom-0 left-0 w-full h-[2px] bg-[#fcd34d] shadow-[0_0_10px_#fcd34d]" />
                             )}
@@ -276,7 +276,7 @@ export default function AdminPage() {
 
                         <button
                             onClick={() => setActiveTab('race')}
-                            className={`pb-3 text-lg font-bold tracking-wider transition-all duration-300 relative ${activeTab === 'race'
+                            className={`pb-2 md:pb-3 text-sm md:text-lg font-bold tracking-wider transition-all duration-300 relative whitespace-nowrap ${activeTab === 'race'
                                 ? 'text-[#fcd34d] drop-shadow-[0_0_8px_rgba(252,211,77,0.5)]'
                                 : 'text-white/40 hover:text-white/70'
                                 }`}
@@ -291,7 +291,7 @@ export default function AdminPage() {
 
 
                 {/* Main Content Area */}
-                <div className="w-full max-w-7xl h-full">
+                <div className="w-full max-w-7xl h-full pb-10">
                     <AnimatePresence mode="wait">
                         {activeTab === 'registration' ? (
                             <motion.div
@@ -300,12 +300,12 @@ export default function AdminPage() {
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: 20 }}
                                 transition={{ duration: 0.3 }}
-                                className="grid grid-cols-1 lg:grid-cols-2 gap-12"
+                                className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12"
                             >
                                 {/* LEFT PANEL: The Grimoire (Enroll Form) */}
                                 <div className="relative">
                                     <div
-                                        className="bg-[#2d1b18] rounded-r-3xl rounded-l-md p-8 shadow-[0_20px_50px_rgba(0,0,0,0.6)] border-r-8 border-[#1a100e] relative min-h-[600px] flex flex-col"
+                                        className="bg-[#2d1b18] rounded-r-3xl rounded-l-md p-4 md:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.6)] border-r-4 md:border-r-8 border-[#1a100e] relative min-h-[500px] md:min-h-[600px] flex flex-col"
                                         style={{
                                             backgroundImage: "linear-gradient(to right, #1a100e 0%, #2d1b18 5%, #3e2723 100%)"
                                         }}
@@ -313,14 +313,14 @@ export default function AdminPage() {
                                         {/* Leather Texture */}
                                         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/black-scales.png')] opacity-30 mix-blend-multiply rounded-r-3xl pointer-events-none" />
                                         {/* Gold Corners */}
-                                        <div className="absolute top-4 right-4 w-16 h-16 border-t-4 border-r-4 border-[#b45309] rounded-tr-2xl" />
-                                        <div className="absolute bottom-4 right-4 w-16 h-16 border-b-4 border-r-4 border-[#b45309] rounded-br-2xl" />
+                                        <div className="absolute top-4 right-4 w-12 h-12 md:w-16 md:h-16 border-t-4 border-r-4 border-[#b45309] rounded-tr-2xl" />
+                                        <div className="absolute bottom-4 right-4 w-12 h-12 md:w-16 md:h-16 border-b-4 border-r-4 border-[#b45309] rounded-br-2xl" />
 
-                                        <h2 className="text-3xl font-bold text-[#f97316] mb-8 text-center drop-shadow-md border-b-2 border-[#f97316]/20 pb-4 mx-8 relative z-10">
+                                        <h2 className="text-2xl md:text-3xl font-bold text-[#f97316] mb-6 md:mb-8 text-center drop-shadow-md border-b-2 border-[#f97316]/20 pb-4 mx-4 md:mx-8 relative z-10">
                                             Enroll Champions
                                         </h2>
 
-                                        <form onSubmit={handleAddTeam} className="space-y-6 relative z-10 px-4">
+                                        <form onSubmit={handleAddTeam} className="space-y-4 md:space-y-6 relative z-10 px-2 md:px-4">
                                             {/* Floating Parchment Inputs */}
                                             {['name', 'leader', 'passcode'].map((field) => (
                                                 <div key={field} className="relative group">
@@ -329,7 +329,7 @@ export default function AdminPage() {
                                                         value={newTeam[field as keyof typeof newTeam]}
                                                         onChange={(e) => setNewTeam({ ...newTeam, [field]: e.target.value })}
                                                         placeholder={field === 'name' ? 'House/Team Name' : field.charAt(0).toUpperCase() + field.slice(1)}
-                                                        className="w-full bg-[#f5e6c8] text-[#3e2723] font-hand placeholder-[#8d6e63] text-xl p-3 rounded shadow-md border-2 border-[#d7ccc8] focus:border-[#f97316] outline-none transform transition-transform focus:-translate-y-1 focus:shadow-lg"
+                                                        className="w-full bg-[#f5e6c8] text-[#3e2723] font-hand placeholder-[#8d6e63] text-lg md:text-xl p-3 rounded shadow-md border-2 border-[#d7ccc8] focus:border-[#f97316] outline-none transform transition-transform focus:-translate-y-1 focus:shadow-lg"
                                                         style={{ fontFamily: 'cursive' }} // Fallback/Basic handwriting feel
                                                         required
                                                     />
@@ -343,7 +343,7 @@ export default function AdminPage() {
                                                     value={newTeam.round2_password}
                                                     onChange={(e) => setNewTeam({ ...newTeam, round2_password: e.target.value })}
                                                     placeholder="Round 2 Secret (8 chars)"
-                                                    className="w-full bg-[#ffccbc] text-[#bf360c] font-hand placeholder-[#ffab91] text-xl p-3 rounded shadow-md border-2 border-[#ffab91] focus:border-[#d84315] outline-none transform transition-transform focus:-translate-y-1 focus:shadow-lg"
+                                                    className="w-full bg-[#ffccbc] text-[#bf360c] font-hand placeholder-[#ffab91] text-lg md:text-xl p-3 rounded shadow-md border-2 border-[#ffab91] focus:border-[#d84315] outline-none transform transition-transform focus:-translate-y-1 focus:shadow-lg"
                                                     style={{ fontFamily: 'cursive' }}
                                                     maxLength={8}
                                                     minLength={8}
@@ -352,7 +352,7 @@ export default function AdminPage() {
                                             </div>
 
                                             {/* Warning Embers */}
-                                            <div className="text-center text-[#fca5a5] text-sm italic font-sans bg-black/20 p-2 rounded animate-pulse">
+                                            <div className="text-center text-[#fca5a5] text-xs md:text-sm italic font-sans bg-black/20 p-2 rounded animate-pulse">
                                                 ⚠️ The Secret is the key to the final mystery.
                                             </div>
 
@@ -360,12 +360,12 @@ export default function AdminPage() {
                                             <motion.button
                                                 whileHover={{ scale: 1.02, textShadow: "0 0 8px #fcd34d" }}
                                                 whileTap={{ scale: 0.98 }}
-                                                className="w-full py-4 mt-6 bg-gradient-to-b from-[#b45309] to-[#78350f] rounded-lg border-2 border-[#fcd34d] shadow-[0_4px_0_#451a03] active:shadow-none active:translate-y-1 transition-all relative overflow-hidden group"
+                                                className="w-full py-3 md:py-4 mt-4 md:mt-6 bg-gradient-to-b from-[#b45309] to-[#78350f] rounded-lg border-2 border-[#fcd34d] shadow-[0_4px_0_#451a03] active:shadow-none active:translate-y-1 transition-all relative overflow-hidden group"
                                             >
                                                 <div className="absolute inset-0 bg-[#fcd34d]/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                <div className="flex items-center justify-center gap-3 text-[#fef3c7] font-bold text-xl uppercase tracking-widest">
-                                                    <span className="text-2xl">🦁</span> Enroll & Sort
-                                                    <span className="text-2xl">🦁</span>
+                                                <div className="flex items-center justify-center gap-3 text-[#fef3c7] font-bold text-lg md:text-xl uppercase tracking-widest">
+                                                    <span className="text-xl md:text-2xl">🦁</span> Enroll & Sort
+                                                    <span className="text-xl md:text-2xl">🦁</span>
                                                 </div>
                                             </motion.button>
                                         </form>
@@ -373,7 +373,7 @@ export default function AdminPage() {
                                 </div>
 
                                 {/* RIGHT PANEL: The Magic Scroll (List) */}
-                                <div className="h-[750px] relative">
+                                <div className="h-[500px] md:h-[750px] relative">
                                     <MagicScroll title="Scroll of Participants">
                                         {teams.length === 0 && (
                                             <div className="text-center py-10 opacity-50 italic text-[#5d4037]">
@@ -390,15 +390,15 @@ export default function AdminPage() {
                                                             initial={{ opacity: 0, y: 20 }}
                                                             animate={{ opacity: 1, y: 0 }}
                                                             exit={{ opacity: 0, scale: 0.9 }}
-                                                            className="relative bg-[#d7ccc8] p-4 rounded-md shadow-md border border-[#a1887f] flex justify-between items-center group overflow-hidden"
+                                                            className="relative bg-[#d7ccc8] p-3 md:p-4 rounded-md shadow-md border border-[#a1887f] flex justify-between items-center group overflow-hidden"
                                                         >
                                                             {/* Burnt edges effect using simple gradients */}
                                                             <div className="absolute inset-0 bg-gradient-to-r from-[#3e2723]/20 via-transparent to-[#3e2723]/20 pointer-events-none" />
 
-                                                            <div className="flex items-center gap-4 relative z-10">
+                                                            <div className="flex items-center gap-2 md:gap-4 relative z-10">
                                                                 {/* House Crest */}
                                                                 <div
-                                                                    className="w-12 h-12 rounded-full flex items-center justify-center text-2xl shadow-inner border-2 border-opacity-50"
+                                                                    className="w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-lg md:text-2xl shadow-inner border-2 border-opacity-50"
                                                                     style={{
                                                                         backgroundColor: HOUSE_COLORS[team.house] + '20', // Low opacity bg
                                                                         borderColor: HOUSE_COLORS[team.house]
@@ -408,18 +408,18 @@ export default function AdminPage() {
                                                                 </div>
 
                                                                 <div>
-                                                                    <h4 className="font-bold text-[#3e2723] text-lg">{team.name}</h4>
-                                                                    <p className="text-xs text-[#5d4037] font-sans uppercase tracking-wide">
+                                                                    <h4 className="font-bold text-[#3e2723] text-sm md:text-lg">{team.name}</h4>
+                                                                    <p className="text-[10px] md:text-xs text-[#5d4037] font-sans uppercase tracking-wide">
                                                                         {team.leader} • <span style={{ color: HOUSE_COLORS[team.house] }} className="font-bold">{team.house}</span>
                                                                     </p>
                                                                 </div>
                                                             </div>
 
                                                             <div className="text-right relative z-10">
-                                                                <div className="font-mono text-lg font-bold text-[#3e2723] bg-[#efebe9] px-2 py-1 rounded inline-block shadow-inner mb-1">
+                                                                <div className="font-mono text-sm md:text-lg font-bold text-[#3e2723] bg-[#efebe9] px-2 py-1 rounded inline-block shadow-inner mb-1">
                                                                     {team.startedAt ? formatDuration(timeElapsed) : "WAITING"}
                                                                 </div>
-                                                                <div className="flex flex-col gap-1 text-[10px] uppercase font-bold text-[#8d6e63]">
+                                                                <div className="flex flex-col gap-1 text-[8px] md:text-[10px] uppercase font-bold text-[#8d6e63]">
                                                                     <span>Code: {team.passcode}</span>
                                                                     <span>Secret: {team.round2_password}</span>
                                                                 </div>

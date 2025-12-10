@@ -256,43 +256,43 @@ export default function StudentDashboard() {
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="relative z-10 p-4 md:p-8 max-w-5xl mx-auto flex flex-col gap-6"
+                    className="relative z-10 p-4 md:p-8 max-w-5xl mx-auto flex flex-col gap-4 md:gap-6 pb-20 md:pb-8"
                 >
 
                     {/* Header Card */}
-                    <div className={`p-6 rounded-2xl backdrop-blur-md bg-black/40 border-2 ${theme.border} ${theme.glow} flex justify-between items-center`}>
+                    <div className={`p-4 md:p-6 rounded-2xl backdrop-blur-md bg-black/40 border-2 ${theme.border} ${theme.glow} flex justify-between items-center`}>
                         <div>
-                            <h2 className="text-xs uppercase tracking-widest opacity-70">Welcome Champion</h2>
-                            <h1 className={`text-2xl md:text-4xl font-bold ${theme.accent} drop-shadow-md`}>
+                            <h2 className="text-[10px] md:text-xs uppercase tracking-widest opacity-70">Welcome Champion</h2>
+                            <h1 className={`text-xl md:text-4xl font-bold ${theme.accent} drop-shadow-md`}>
                                 {user.teamName}
                             </h1>
                         </div>
                         <div className="text-right">
-                            <div className={`inline-block px-3 py-1 rounded-full border ${theme.border} bg-black/50 text-xs font-bold uppercase tracking-widest`}>
+                            <div className={`inline-block px-2 py-1 md:px-3 rounded-full border ${theme.border} bg-black/50 text-[10px] md:text-xs font-bold uppercase tracking-widest`}>
                                 {user.house}
                             </div>
-                            <div className="text-xs mt-1 text-white/50">{user.path.toUpperCase()} PATH</div>
+                            <div className="text-[10px] md:text-xs mt-1 text-white/50">{user.path.toUpperCase()} PATH</div>
                         </div>
                     </div>
 
                     {/* Game Status or content */}
                     {!isGameActive ? (
-                        <div className="text-center py-20">
-                            <h2 className="text-3xl font-bold animate-pulse text-yellow-500">The Tournament is Paused</h2>
-                            <p className="opacity-60 mt-2">The Headmaster is speaking...</p>
+                        <div className="text-center py-10 md:py-20">
+                            <h2 className="text-xl md:text-3xl font-bold animate-pulse text-yellow-500">The Tournament is Paused</h2>
+                            <p className="opacity-60 mt-2 text-sm md:text-base">The Headmaster is speaking...</p>
                         </div>
                     ) : gameStatus === 'finished' ? (
-                        <div className="p-8 rounded-2xl bg-black/60 border border-yellow-500 text-center space-y-4 shadow-[0_0_50px_rgba(234,179,8,0.3)]">
-                            <h1 className="text-5xl font-bold text-yellow-400">VICTORY</h1>
-                            <p className="text-xl">You have completed the Triwizard Quest.</p>
+                        <div className="p-4 md:p-8 rounded-2xl bg-black/60 border border-yellow-500 text-center space-y-4 shadow-[0_0_50px_rgba(234,179,8,0.3)]">
+                            <h1 className="text-3xl md:text-5xl font-bold text-yellow-400">VICTORY</h1>
+                            <p className="text-base md:text-xl">You have completed the Triwizard Quest.</p>
                         </div>
                     ) : currentStage >= 5 ? (
                         // GATEKEEPER MODE
-                        <div className={`p-8 rounded-2xl bg-black/60 border-2 ${theme.border} ${theme.glow} text-center space-y-6`}>
-                            <h2 className="text-3xl text-red-500 tracking-[0.2em] font-bold">THE FINAL PORTAL</h2>
-                            <p className="text-white/70">Enter the 8-character Secret Password to claim victory.</p>
-                            <div className="font-mono text-3xl tracking-[0.5em] text-white my-4">{getRevealedPassword()}</div>
-                            <form onSubmit={handleGatekeeper} className="max-w-md mx-auto flex gap-2">
+                        <div className={`p-4 md:p-8 rounded-2xl bg-black/60 border-2 ${theme.border} ${theme.glow} text-center space-y-6`}>
+                            <h2 className="text-2xl md:text-3xl text-red-500 tracking-[0.2em] font-bold">THE FINAL PORTAL</h2>
+                            <p className="text-white/70 text-sm md:text-base">Enter the 8-character Secret Password to claim victory.</p>
+                            <div className="font-mono text-2xl md:text-3xl tracking-[0.3em] md:tracking-[0.5em] text-white my-4 break-all">{getRevealedPassword()}</div>
+                            <form onSubmit={handleGatekeeper} className="max-w-md mx-auto flex flex-col md:flex-row gap-2">
                                 <input
                                     className="flex-1 bg-black/50 border border-white/30 p-3 rounded text-center outline-none focus:border-red-500"
                                     placeholder="PASSWORD"
@@ -304,30 +304,32 @@ export default function StudentDashboard() {
                         </div>
                     ) : (
                         // NORMAL GAMEPLAY
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
 
                             {/* Left: Quest Journal */}
-                            <div className="space-y-6">
-                                <QuestJournal
-                                    clue={currentClue}
-                                    stage={displayStage}
-                                    house={user.house}
-                                />
+                            <div className="space-y-4 md:space-y-6">
+                                <div className="w-full">
+                                    <QuestJournal
+                                        clue={currentClue}
+                                        stage={displayStage}
+                                        house={user.house}
+                                    />
+                                </div>
                                 <InventoryPouch revealedPassword={getRevealedPassword()} />
                             </div>
 
                             {/* Right: Actions / Scanner */}
-                            <div className="flex flex-col gap-6">
-                                <div className={`flex-1 min-h-[300px] rounded-2xl bg-black/30 border ${theme.border} flex items-center justify-center relative overflow-hidden group hover:bg-black/40 transition-colors cursor-pointer`}
+                            <div className="flex flex-col gap-4 md:gap-6">
+                                <div className={`flex-1 min-h-[200px] md:min-h-[300px] rounded-2xl bg-black/30 border ${theme.border} flex items-center justify-center relative overflow-hidden group hover:bg-black/40 transition-colors cursor-pointer active:scale-95 duration-200`}
                                     onClick={handleStartScanning}
                                 >
                                     <div className={`absolute inset-0 bg-gradient-to-t from-${theme.accent.split('-')[1]}-900/20 to-transparent`} />
-                                    <div className="text-center z-10 space-y-4">
-                                        <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center mx-auto backdrop-blur-md border border-white/20 group-hover:scale-110 transition-transform">
-                                            <span className="text-4xl">📷</span>
+                                    <div className="text-center z-10 space-y-2 md:space-y-4 p-4">
+                                        <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white/10 flex items-center justify-center mx-auto backdrop-blur-md border border-white/20 group-hover:scale-110 transition-transform">
+                                            <span className="text-3xl md:text-4xl">📷</span>
                                         </div>
-                                        <h3 className="text-xl font-bold tracking-widest">SCAN RUNE</h3>
-                                        <p className="text-xs opacity-50 px-8">Find the QR code at location #{displayStage} <br /> ({user.path.toUpperCase()} PATH)</p>
+                                        <h3 className="text-lg md:text-xl font-bold tracking-widest">SCAN RUNE</h3>
+                                        <p className="text-[10px] md:text-xs opacity-50 px-4 md:px-8">Find the QR code at location #{displayStage} <br /> ({user.path.toUpperCase()} PATH)</p>
                                     </div>
                                 </div>
                             </div>
@@ -349,17 +351,17 @@ export default function StudentDashboard() {
                         {/* Close Button Top Right */}
                         <button
                             onClick={() => setIsScanning(false)}
-                            className="absolute top-8 right-8 text-white/80 hover:text-white transition-colors"
+                            className="absolute top-8 right-8 text-white/80 hover:text-white transition-colors p-2"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 md:h-10 md:w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
 
-                        <h2 className="text-2xl mb-8 tracking-[0.3em] text-white/80 font-cinzel">ALIGN THE RUNE</h2>
+                        <h2 className="text-xl md:text-2xl mb-4 md:mb-8 tracking-[0.3em] text-white/80 font-cinzel text-center mt-8">ALIGN THE RUNE</h2>
 
                         {/* Scanner Container */}
-                        <div className={`relative w-full max-w-sm aspect-square rounded-xl overflow-hidden border-4 ${theme.border} shadow-[0_0_50px_rgba(255,255,255,0.1)]`}>
+                        <div className={`relative w-full max-w-[300px] md:max-w-sm aspect-square rounded-xl overflow-hidden border-4 ${theme.border} shadow-[0_0_50px_rgba(255,255,255,0.1)]`}>
                             <Scanner
                                 onScan={(res) => {
                                     if (res && res.length > 0) {
@@ -370,14 +372,14 @@ export default function StudentDashboard() {
                             />
 
                             {/* Overlay Frame (Magical Lens) */}
-                            <div className="absolute inset-0 border-[40px] border-black/60 z-10 pointer-events-none" />
+                            <div className="absolute inset-0 border-[30px] md:border-[40px] border-black/60 z-10 pointer-events-none" />
 
                             {/* Corner Markers */}
                             <div className="absolute inset-4 pointer-events-none z-20 opacity-60">
-                                <div className={`absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 ${theme.border.replace('border-', 'border-')}`} />
-                                <div className={`absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 ${theme.border.replace('border-', 'border-')}`} />
-                                <div className={`absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 ${theme.border.replace('border-', 'border-')}`} />
-                                <div className={`absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 ${theme.border.replace('border-', 'border-')}`} />
+                                <div className={`absolute top-0 left-0 w-6 h-6 md:w-8 md:h-8 border-t-4 border-l-4 ${theme.border.replace('border-', 'border-')}`} />
+                                <div className={`absolute top-0 right-0 w-6 h-6 md:w-8 md:h-8 border-t-4 border-r-4 ${theme.border.replace('border-', 'border-')}`} />
+                                <div className={`absolute bottom-0 left-0 w-6 h-6 md:w-8 md:h-8 border-b-4 border-l-4 ${theme.border.replace('border-', 'border-')}`} />
+                                <div className={`absolute bottom-0 right-0 w-6 h-6 md:w-8 md:h-8 border-b-4 border-r-4 ${theme.border.replace('border-', 'border-')}`} />
                             </div>
 
                             {/* Scanning Laser Line */}
@@ -391,16 +393,16 @@ export default function StudentDashboard() {
                         {/* Close Button Bottom (Mobile Friendly) */}
                         <button
                             onClick={() => setIsScanning(false)}
-                            className="mt-8 px-8 py-3 bg-white/10 border border-white/20 rounded-full font-bold tracking-widest hover:bg-white/20 transition-all uppercase text-sm"
+                            className="mt-8 px-8 py-3 bg-white/10 border border-white/20 rounded-full font-bold tracking-widest hover:bg-white/20 transition-all uppercase text-xs md:text-sm"
                         >
                             Close Magical Lens
                         </button>
 
                         {/* Feedback Text */}
-                        <div className="mt-8 h-12 text-center">
-                            {scanFeedback.type === 'idle' && <p className="animate-pulse text-white/50 text-lg">Searching for Signal...</p>}
-                            {scanFeedback.type === 'success' && <p className="text-green-400 text-xl font-bold font-cinzel drop-shadow-md">✨ {scanFeedback.msg}</p>}
-                            {scanFeedback.type === 'error' && <p className="text-red-400 text-xl font-bold font-cinzel drop-shadow-md whitespace-pre-wrap px-4">⚠️ {scanFeedback.msg}</p>}
+                        <div className="mt-8 h-12 text-center px-4">
+                            {scanFeedback.type === 'idle' && <p className="animate-pulse text-white/50 text-base md:text-lg">Searching for Signal...</p>}
+                            {scanFeedback.type === 'success' && <p className="text-green-400 text-lg md:text-xl font-bold font-cinzel drop-shadow-md">✨ {scanFeedback.msg}</p>}
+                            {scanFeedback.type === 'error' && <p className="text-red-400 text-sm md:text-xl font-bold font-cinzel drop-shadow-md whitespace-pre-wrap">⚠️ {scanFeedback.msg}</p>}
                         </div>
 
                     </motion.div>
