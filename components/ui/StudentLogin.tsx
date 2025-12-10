@@ -141,14 +141,18 @@ export function StudentLogin({ onLoginSuccess }: { onLoginSuccess: (teamId: stri
         ==============================
       */}
             <div className="absolute w-full h-full max-w-4xl pointer-events-none overflow-hidden">
-                <Candle x={10} y={50} delay={0} scale={0.5} />
+                {/* Desktop Candles (Original Positions) */}
                 <div className="hidden md:block">
+                    <Candle x={-20} y={50} delay={0} scale={0.6} />
                     <Candle x={-120} y={200} delay={1} scale={0.7} />
                     <Candle x={580} y={80} delay={2} scale={0.9} />
+                    <Candle x={300} y={250} delay={0.5} scale={0.8} />
                 </div>
-                <Candle x={300} y={250} delay={0.5} scale={0.6} />
-                {/* Mobile specific candle positioning - roughly centered/scattered */}
+
+                {/* Mobile Candles (Adjusted for small screen) */}
                 <div className="md:hidden">
+                    <Candle x={10} y={50} delay={0} scale={0.5} />
+                    <Candle x={200} y={250} delay={0.5} scale={0.5} />
                     <Candle x={-20} y={120} delay={1.5} scale={0.4} />
                     <Candle x={280} y={400} delay={0.8} scale={0.4} />
                 </div>

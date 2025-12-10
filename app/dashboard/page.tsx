@@ -61,18 +61,18 @@ const THEME_CONFIG: Record<string, { bgGradient: string; border: string; glow: s
 
 const CLUE_DATA = {
     alpha: {
-        1: "I used to zoom on the road, now I stand still and carry your food. Find me where wheels meet meals! (Canteen)",
-        2: "Standing proud for every techie, This place welcomes you politely. (Reception)",
-        3: "Where answers end and marks begin — Seek the cell that judges if you lose or win. (Exam Cell Window)",
-        4: "Engines roar, then fall to hush, Here they wait without a rush. Find your clue among the lanes... (Parking)",
-        5: "Dribble, pass, shoot… and score! Find the place with a painted floor... (Basketball Court)"
+        1: "I used to zoom on the road, now I stand still and carry your food. Find me where wheels meet meals! ",
+        2: "Standing proud for every techie, This place welcomes you politely. ",
+        3: "Where answers end and marks begin — Seek the cell that judges if you lose or win. ",
+        4: "Engines roar, then fall to hush, Here they wait without a rush. Find your clue among the lanes.",
+        5: "Dribble, pass, shoot… and score! Find the place with a painted floor."
     } as Record<number, string>,
     beta: {
-        1: "A plate of noodles and a drink so cool, A poster here makes you drool. (Nescafe/Maggi Point)",
-        2: "I’m the hub where minds huddle — find me! (Library)",
-        3: "Where answers end and marks begin — Seek the cell that judges if you lose or win. (Scholarship Counter)",
-        4: "I stand by the road, round and tall, Show you yourself, no glass hall. Plants around me... (Road red Mirror)",
-        5: "Under my giant metal crown, Athletes cheer and never frown... Come here — where champions play! (MFC Gate)"
+        1: "A plate of noodles and a drink so cool, A poster here makes you drool.",
+        2: "I’m the hub where minds huddle — find me! ",
+        3: "Where answers end and marks begin — Seek the cell that judges if you lose or win. ",
+        4: "I stand by the road, round and tall, Show you yourself, no glass hall. Plants around me.",
+        5: "Under my giant metal crown, Athletes cheer and never frown... Come here — where champions play! "
     } as Record<number, string>
 };
 
