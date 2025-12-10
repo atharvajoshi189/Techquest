@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { IntroVideo } from '@/components/IntroVideo';
@@ -17,6 +17,11 @@ interface UserSession {
     house: string;
     path: 'alpha' | 'beta';
     currentStage: number;
+}
+
+interface QRPayload {
+    path_id: string;
+    stage: number;
 }
 
 // --- CONFIGURATION ---
@@ -158,10 +163,10 @@ export default function StudentDashboard() {
 
         try {
             // 1. Attempts to Parse JSON (Strict Requirement)
-            let payload: any;
+            let payload: QRPayload;
             try {
                 payload = JSON.parse(rawValue);
-            } catch (e) {
+            } catch {
                 console.error("QR Parse Failed:", rawValue);
                 setScanFeedback({ type: 'error', msg: 'Invalid Rune Format!' });
                 return;

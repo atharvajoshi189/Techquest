@@ -5,9 +5,7 @@ import { motion } from "framer-motion";
 import { db } from "@/app/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 
-interface StudentLoginProps {
-    onLoginSuccess: (teamId: string, teamData: any) => void;
-}
+import { DocumentData } from "firebase/firestore";
 
 // ---------------------------
 // Sub-Component: Realistic Candle
@@ -44,7 +42,7 @@ function Candle({ delay = 0, x = 0, y = 0, scale = 1 }: { delay?: number; x?: nu
 // ---------------------------
 // Main Component
 // ---------------------------
-export function StudentLogin({ onLoginSuccess }: { onLoginSuccess: (teamId: string, teamData: any) => void }) {
+export function StudentLogin({ onLoginSuccess }: { onLoginSuccess: (teamId: string, teamData: DocumentData) => void }) {
     const [loading, setLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
 

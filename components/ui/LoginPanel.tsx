@@ -24,7 +24,7 @@ export function LoginPanel() {
             <div
                 className="absolute inset-0 z-0 opacity-80 group-hover:opacity-100 transition-opacity duration-700"
                 style={{
-                    backgroundImage: "url('/public/admin.webp')",
+                    backgroundImage: "url('/admin.webp')",
                     backgroundSize: "cover",
                     backgroundPosition: "center",
                 }}

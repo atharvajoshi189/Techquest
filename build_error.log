@@ -1,0 +1,29 @@
+
+> frontend@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.33
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+
+Failed to compile.
+
+./app/admin/page.tsx
+36:7  Error: 'HOUSES' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+274:57  Error: Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free.  @typescript-eslint/ban-ts-comment
+276:57  Error: Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free.  @typescript-eslint/ban-ts-comment
+
+./app/dashboard/page.tsx
+2:38  Error: 'useCallback' is defined but never used.  @typescript-eslint/no-unused-vars
+2:51  Error: 'useRef' is defined but never used.  @typescript-eslint/no-unused-vars
+161:26  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+164:22  Error: 'e' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/ui/StudentLogin.tsx
+8:11  Error: 'StudentLoginProps' is defined but never used.  @typescript-eslint/no-unused-vars
+9:48  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+47:95  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/basic-features/eslint#disabling-rules

@@ -33,7 +33,7 @@ interface Team {
     path?: 'alpha' | 'beta';
 }
 
-const HOUSES = ['Gryffindor', 'Slytherin', 'Hufflepuff', 'Ravenclaw'];
+
 
 const HOUSE_COLORS: Record<string, string> = {
     'Gryffindor': '#740001',
@@ -271,9 +271,7 @@ export default function AdminPage() {
                                                 <div key={field} className="relative group">
                                                     <div className="absolute inset-0 bg-white/10 blur-sm rounded translate-y-1" />
                                                     <input
-                                                        // @ts-ignore
                                                         value={newTeam[field as keyof typeof newTeam]}
-                                                        // @ts-ignore
                                                         onChange={(e) => setNewTeam({ ...newTeam, [field]: e.target.value })}
                                                         placeholder={field === 'name' ? 'House/Team Name' : field.charAt(0).toUpperCase() + field.slice(1)}
                                                         className="w-full bg-[#f5e6c8] text-[#3e2723] font-hand placeholder-[#8d6e63] text-xl p-3 rounded shadow-md border-2 border-[#d7ccc8] focus:border-[#f97316] outline-none transform transition-transform focus:-translate-y-1 focus:shadow-lg"
