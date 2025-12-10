@@ -245,7 +245,7 @@ export default function StudentDashboard() {
                     <IntroVideo
                         house={user.house}
                         // Simplified video logic: just pass house, component handles fallback if needed or we assume standard naming
-                        videoSrc={`/videos_${user.house.charAt(0).toLowerCase()}.mp4`}
+                        videoSrc={`/videos_${user.house.charAt(0).toLowerCase()}.webm`}
                         onComplete={() => setShowIntro(false)}
                     />
                 )}
