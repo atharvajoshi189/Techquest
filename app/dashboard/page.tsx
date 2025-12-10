@@ -1,337 +1,407 @@
 "use client";
-import React, { useEffect, useState, useCallback } from 'react';
-import { MagicCard } from '@/components/ui/MagicCard';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { IntroVideo } from '@/components/IntroVideo';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import { db } from '../firebase';
 import { doc, onSnapshot, updateDoc, serverTimestamp, increment } from 'firebase/firestore';
+import { QuestJournal } from '@/components/dashboard/QuestJournal';
+import { InventoryPouch } from '@/components/dashboard/InventoryPouch';
 
-interface ScanResult {
-    rawValue: string;
+// --- Types ---
+interface UserSession {
+    teamId: string;
+    teamName: string;
+    leader: string;
+    house: string;
+    path: 'alpha' | 'beta';
+    currentStage: number;
 }
 
-const CLUES = [
-    "Start where the characters fly on Sundays.",
-    "Platform 9 3/4 awaits. Don't be late for the Express.",
-    "Beneath the trapdoor, the devil's snare lies.",
-    "The Chamber has been opened. Enemies of the heir, beware.",
-    "I solemnly swear that I am up to no good.",
-    "You have won! The Triwizard Cup is yours!"
-];
+// --- CONFIGURATION ---
 
-const HOUSE_THEMES: Record<string, { bg: string, text: string, accent: string, border: string }> = {
-    'Gryffindor': { bg: 'bg-red-950', text: 'text-amber-400', accent: 'bg-red-700', border: 'border-amber-500' },
-    'Slytherin': { bg: 'bg-emerald-950', text: 'text-slate-300', accent: 'bg-emerald-800', border: 'border-slate-400' },
-    'Ravenclaw': { bg: 'bg-blue-950', text: 'text-amber-100', accent: 'bg-blue-800', border: 'border-amber-200' },
-    'Hufflepuff': { bg: 'bg-yellow-900', text: 'text-black', accent: 'bg-yellow-600', border: 'border-black' },
+const THEME_CONFIG: Record<string, { bgGradient: string; border: string; glow: string; accent: string }> = {
+    'Ravenclaw': {
+        bgGradient: "bg-gradient-to-br from-blue-900 via-indigo-900 to-black",
+        border: "border-blue-400/50",
+        glow: "shadow-blue-500/50",
+        accent: "text-blue-200"
+    },
+    'Slytherin': {
+        bgGradient: "bg-gradient-to-br from-green-900 via-teal-900 to-black",
+        border: "border-green-400/50",
+        glow: "shadow-green-500/50",
+        accent: "text-green-200"
+    },
+    'Gryffindor': {
+        bgGradient: "bg-gradient-to-br from-red-900 via-orange-900 to-black",
+        border: "border-red-400/50",
+        glow: "shadow-red-500/50",
+        accent: "text-red-200"
+    },
+    'Hufflepuff': {
+        bgGradient: "bg-gradient-to-br from-yellow-700 via-orange-800 to-black",
+        border: "border-yellow-400/50",
+        glow: "shadow-yellow-500/50",
+        accent: "text-yellow-200"
+    },
+    'Default': {
+        bgGradient: "bg-gradient-to-br from-gray-900 to-black",
+        border: "border-white/20",
+        glow: "shadow-white/20",
+        accent: "text-white"
+    }
 };
 
-// Video Mapping
-const HOUSE_VIDEOS: Record<string, string> = {
-    'Gryffindor': '/videos_g.mp4',
-    'Slytherin': '/videos_s.mp4',
-    'Ravenclaw': '/videos_r.mp4',
-    'Hufflepuff': '/videos_h.mp4'
+const CLUE_DATA = {
+    alpha: {
+        1: "I used to zoom on the road, now I stand still and carry your food. Find me where wheels meet meals! (Canteen)",
+        2: "Standing proud for every techie, This place welcomes you politely. (Reception)",
+        3: "Where answers end and marks begin — Seek the cell that judges if you lose or win. (Exam Cell Window)",
+        4: "Engines roar, then fall to hush, Here they wait without a rush. Find your clue among the lanes... (Parking)",
+        5: "Dribble, pass, shoot… and score! Find the place with a painted floor... (Basketball Court)"
+    } as Record<number, string>,
+    beta: {
+        1: "A plate of noodles and a drink so cool, A poster here makes you drool. (Nescafe/Maggi Point)",
+        2: "I’m the hub where minds huddle — find me! (Library)",
+        3: "Where answers end and marks begin — Seek the cell that judges if you lose or win. (Scholarship Counter)",
+        4: "I stand by the road, round and tall, Show you yourself, no glass hall. Plants around me... (Road red Mirror)",
+        5: "Under my giant metal crown, Athletes cheer and never frown... Come here — where champions play! (MFC Gate)"
+    } as Record<number, string>
 };
 
+// --- Main Component ---
 
-export default function DashboardPage() {
+export default function StudentDashboard() {
     const router = useRouter();
-    const [teamName, setTeamName] = useState<string>("");
-    const [teamId, setTeamId] = useState<string | null>(null);
-    const [teamHouse, setTeamHouse] = useState<string>("Gryffindor");
 
-    // Config
-    const [showIntro, setShowIntro] = useState(true);
-    const [isGameActive, setIsGameActive] = useState<boolean>(false);
-
-    // Live Data
+    // State
+    const [user, setUser] = useState<UserSession | null>(null);
     const [currentStage, setCurrentStage] = useState(0);
-    const [clue, setClue] = useState("Loading clue...");
-    const [round2Password, setRound2Password] = useState<string>("");
-    const [gameStatus, setGameStatus] = useState<string>("active");
+    const [gameStatus, setGameStatus] = useState('active');
+    const [round2Password, setRound2Password] = useState('');
+    const [isGameActive, setIsGameActive] = useState(false);
 
-    // Scanner
+    // UI State
+    const [showIntro, setShowIntro] = useState(true);
     const [isScanning, setIsScanning] = useState(false);
-    const [scanStatus, setScanStatus] = useState<'idle' | 'success' | 'error'>('idle');
-    const [feedbackMsg, setFeedbackMsg] = useState('');
+    const [scanFeedback, setScanFeedback] = useState<{ type: 'success' | 'error' | 'idle', msg: string }>({ type: 'idle', msg: '' });
+    const [gatekeeperInput, setGatekeeperInput] = useState('');
 
-    // Gatekeeper (Round 2)
-    const [gatekeeperInput, setGatekeeperInput] = useState("");
-    const [gatekeeperError, setGatekeeperError] = useState("");
-
-    const theme = HOUSE_THEMES[teamHouse] || HOUSE_THEMES['Gryffindor'];
-
-    // --- Listeners ---
+    // 1. Initialize User from LocalStorage
     useEffect(() => {
-        const storedTeamId = localStorage.getItem('teamId');
-        if (!storedTeamId) { router.push('/login'); return; }
+        const storedUser = localStorage.getItem('currentUser');
+        if (!storedUser) {
+            router.push('/'); // Redirect to Login
+            return;
+        }
+        try {
+            const parsedUser = JSON.parse(storedUser);
+            setUser(parsedUser);
+            setCurrentStage(parsedUser.currentStage); // Initial load
+        } catch (e) {
+            console.error("Failed to parse user session", e);
+            router.push('/');
+        }
+    }, [router]);
 
-        setTeamName(localStorage.getItem('teamName') || "");
-        setTeamId(storedTeamId);
-        setTeamHouse(localStorage.getItem('teamHouse') || "Gryffindor");
+    // 2. Real-time Listeners
+    useEffect(() => {
+        if (!user?.teamId) return;
 
-        const unsubConfig = onSnapshot(doc(db, "config", "game_settings"), (doc) => {
-            if (doc.exists()) setIsGameActive(doc.data().isGameActive);
+        // Game Settings
+        const unsubConfig = onSnapshot(doc(db, "config", "game_settings"), (d) => {
+            if (d.exists()) setIsGameActive(d.data().isGameActive);
         });
 
-        const unsubTeam = onSnapshot(doc(db, "teams", storedTeamId), (docSnapshot) => {
-            if (docSnapshot.exists()) {
-                const data = docSnapshot.data();
-                const stage = data.current_stage || 0;
-
-                setCurrentStage(stage);
-                setGameStatus(data.status);
-                setRound2Password(data.round2_password || "");
-
-                setClue(CLUES[Math.min(stage, CLUES.length - 1)]);
+        // Team Progress
+        const unsubTeam = onSnapshot(doc(db, "teams", user.teamId), (d) => {
+            if (d.exists()) {
+                const data = d.data();
+                setCurrentStage(data.current_stage || 0);
+                setGameStatus(data.status || 'active');
+                setRound2Password(data.round2_password || '');
             }
         });
 
         return () => { unsubConfig(); unsubTeam(); };
-    }, [router]);
+    }, [user?.teamId]);
 
-    // Helper: Reveal Password Fragments logic
+    // 3. Derived State
+    const theme = THEME_CONFIG[user?.house || 'Default'] || THEME_CONFIG['Default'];
+
+    // Get Clue based on Path & Stage
+    // Note: Clue 1 corresponds to Stage 0 initially or Stage 1? 
+    // Usually Stage 0 means "Not Started", so imply "Go to Location 1".
+    // If currentStage is 0, we show clue for 1. If 1, show clue for 2? 
+    // Let's assume current_stage means "Completed Stages". So Stage 0 means working on Clue 1.
+    const displayStage = currentStage + 1;
+    const currentClue = user?.path
+        ? (CLUE_DATA[user.path][displayStage] || "Wait for the next instruction...")
+        : "Loading Destiny...";
+
+    // Reveal Password Fragments Logic
     const getRevealedPassword = () => {
-        const revealCount = Math.min(currentStage * 2, 8);
         if (!round2Password) return "????????";
-
-        let display = "";
-        for (let i = 0; i < 8; i++) {
-            if (i < revealCount) display += round2Password[i];
-            else display += "_";
-        }
-        return display.split('').join(' ');
+        // Reveal 2 chars per stage completed
+        // Stage 0 -> 0 chars
+        // Stage 1 -> 2 chars
+        // Stage 2 -> 4 chars...
+        const revealCount = Math.min(currentStage * 2, 8);
+        return round2Password.substring(0, revealCount).padEnd(8, '_').split('').join(' ');
     };
 
+    // Handlers
+    const handleScan = async (rawValue: string) => {
+        if (!rawValue || !user || !isGameActive) return;
 
-    // 2. Handle Scan
-    const handleScan = useCallback(async (result: string) => {
-        if (!result || !teamId) return;
-        if (scanStatus === 'success') return; // Debounce
-
-        if (!isGameActive) {
-            setScanStatus('error');
-            setFeedbackMsg("Tournament not active!");
-            setTimeout(() => setScanStatus('idle'), 3000);
-            return;
-        }
-
-        // Check against Wrong House
-        // Pattern: [HouseName]_Stage_[X]
-        const housePattern = /^(Gryffindor|Slytherin|Ravenclaw|Hufflepuff)_Stage_(\d+)$/;
-        const match = result.match(housePattern);
-
-        if (match) {
-            const scannedHouse = match[1];
-            if (scannedHouse !== teamHouse) {
-                setScanStatus('error');
-                setFeedbackMsg("Wrong House! Stick to your path.");
-                setTimeout(() => setScanStatus('idle'), 3000);
+        try {
+            // 1. Attempts to Parse JSON (Strict Requirement)
+            let payload: any;
+            try {
+                payload = JSON.parse(rawValue);
+            } catch (e) {
+                console.error("QR Parse Failed:", rawValue);
+                setScanFeedback({ type: 'error', msg: 'Invalid Rune Format!' });
                 return;
             }
-        }
 
-        // Expected QR
-        const nextStageNum = currentStage + 1;
-        const expectedSecret = `${teamHouse}_Stage_${nextStageNum}`;
-
-        if (result === expectedSecret) {
-            try {
-                // If this is stage 5 scan (reaching 5), we just increment. 
-                // The UI will then show the Gatekeeper. We do NOT finish yet.
-                await updateDoc(doc(db, "teams", teamId), {
-                    current_stage: increment(1),
-                    last_updated: serverTimestamp()
-                });
-
-                setScanStatus('success');
-                setFeedbackMsg("Clue Found! Check your Notebook.");
-
-                setTimeout(() => {
-                    setIsScanning(false);
-                    setScanStatus('idle');
-                    setFeedbackMsg('');
-                }, 2000);
-            } catch (e) {
-                console.error(e);
-                setScanStatus('error');
-                setFeedbackMsg("Spell Fizzled (Error)");
+            // 2. CHECK PATH (Must match User's Path)
+            // e.g. "alpha" vs "alpha"
+            if (payload.path_id !== user.path) {
+                setScanFeedback({ type: 'error', msg: `Wrong Path! This rune belongs to ${payload.path_id}.` });
+                return;
             }
-        } else {
-            // Only show generic error if it wasn't a "Wrong House" error
-            setScanStatus('error');
-            setFeedbackMsg("Wrong QR Code!");
-            setTimeout(() => setScanStatus('idle'), 3000);
-        }
-    }, [teamId, isGameActive, currentStage, scanStatus, teamHouse]);
 
-    // 3. Handle Gatekeeper Submit (End Game)
-    const handleGatekeeperSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+            // 3. CHECK STAGE (Must be the NEXT stage)
+            // User currentStage is "Completed Stages" (e.g. 0).
+            // We are looking for Stage 1.
+            const targetStage = currentStage + 1;
 
-        if (gatekeeperInput.toUpperCase() === round2Password.toUpperCase()) {
-            // WINNER!
-            if (teamId) {
-                await updateDoc(doc(db, "teams", teamId), {
-                    status: 'finished',
-                    finishedAt: serverTimestamp()
-                });
+            // Allow re-scanning the current stage ?? No, strictly next.
+            // But if user scans Stage 1 when they are at 0, it matches.
+            if (payload.stage !== targetStage) {
+                setScanFeedback({ type: 'error', msg: `Wrong Clue! You are looking for Stage ${targetStage}, found ${payload.stage}.` });
+                return;
             }
-        } else {
-            setGatekeeperError("Incorrect Passcode! The Gate remains shut.");
+
+            // --- SUCCESS ---
+            setScanFeedback({ type: 'success', msg: 'Rune Deciphered! Accessing Memory...' });
+
+            // Wait a moment for the user to see success
+            setTimeout(async () => {
+                setIsScanning(false);
+
+                // Update Firestore
+                try {
+                    const teamRef = doc(db, "teams", user.teamId);
+                    await updateDoc(teamRef, {
+                        current_stage: increment(1),
+                        last_updated: serverTimestamp()
+                    });
+                } catch (updateErr) {
+                    console.error("Firestore Update Failed", updateErr);
+                    alert("Network Error: Could not save progress.");
+                }
+            }, 1500);
+
+        } catch (err) {
+            console.error("Scan Error", err);
+            setScanFeedback({ type: 'error', msg: 'The Lens is clouded... Try again.' });
         }
     };
 
+    const handleGatekeeper = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (gatekeeperInput.toUpperCase() === round2Password.toUpperCase()) {
+            await updateDoc(doc(db, "teams", user!.teamId), { status: 'finished', finishedAt: serverTimestamp() });
+        } else {
+            alert("The Gate remains shut.");
+        }
+    };
 
-    if (!teamName) return null;
+    const handleStartScanning = () => {
+        setScanFeedback({ type: 'idle', msg: '' });
+        setIsScanning(true);
+    };
 
-    // --- RENDER STATES ---
-    const showWinnerScreen = gameStatus === 'finished';
-    const showGatekeeper = !showWinnerScreen && currentStage >= 5;
-
-    // Select Video
-    const videoSrc = HOUSE_VIDEOS[teamHouse] || '/videos_g.mp4';
+    if (!user) return <div className="bg-black text-white h-screen flex items-center justify-center">Summoning Wizard...</div>;
 
     return (
-        <div className={`min-h-screen transition-colors duration-1000 ${theme.bg}`}>
+        <div className={`min-h-screen relative overflow-hidden font-cinzel text-white transition-all duration-1000 ${theme.bgGradient}`}>
+
+            {/* Background Texture Overlay */}
+            <div className="absolute inset-0 opacity-20 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] mix-blend-overlay" />
+
+            {/* Intro Video (One time) */}
             <AnimatePresence>
                 {showIntro && (
                     <IntroVideo
-                        house={teamHouse}
-                        videoSrc={videoSrc}
+                        house={user.house}
+                        // Simplified video logic: just pass house, component handles fallback if needed or we assume standard naming
+                        videoSrc={`/videos_${user.house.charAt(0).toLowerCase()}.mp4`}
                         onComplete={() => setShowIntro(false)}
                     />
                 )}
             </AnimatePresence>
 
-            <div className="p-6 md:p-12 flex flex-col items-center max-w-4xl mx-auto pb-32">
+            {/* Main Content */}
+            {!showIntro && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="relative z-10 p-4 md:p-8 max-w-5xl mx-auto flex flex-col gap-6"
+                >
 
-                {/* Header */}
-                <header className={`w-full flex justify-between items-center mb-6 border-b-2 ${theme.border} pb-4`}>
-                    <h1 className={`text-2xl md:text-3xl font-cinzel font-bold ${theme.text}`}>{teamName}</h1>
-                    <div className={`${theme.accent} ${theme.text} px-4 py-2 rounded-full font-bold border ${theme.border} text-sm shadow-md`}>
-                        {isGameActive ? "Active" : "Waiting"}
+                    {/* Header Card */}
+                    <div className={`p-6 rounded-2xl backdrop-blur-md bg-black/40 border-2 ${theme.border} ${theme.glow} flex justify-between items-center`}>
+                        <div>
+                            <h2 className="text-xs uppercase tracking-widest opacity-70">Welcome Champion</h2>
+                            <h1 className={`text-2xl md:text-4xl font-bold ${theme.accent} drop-shadow-md`}>
+                                {user.teamName}
+                            </h1>
+                        </div>
+                        <div className="text-right">
+                            <div className={`inline-block px-3 py-1 rounded-full border ${theme.border} bg-black/50 text-xs font-bold uppercase tracking-widest`}>
+                                {user.house}
+                            </div>
+                            <div className="text-xs mt-1 text-white/50">{user.path.toUpperCase()} PATH</div>
+                        </div>
                     </div>
-                </header>
 
-                {!isGameActive ? (
-                    <MagicCard className="w-full text-center py-20 animate-pulse bg-white/10 border-white/20">
-                        <h2 className={`text-3xl font-cinzel ${theme.text} mb-4`}>The Tournament Has Not Started</h2>
-                    </MagicCard>
-                ) : showWinnerScreen ? (
-                    // --- 1. WINNER SCREEN ---
-                    <motion.div
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        className="w-full text-center space-y-8"
-                    >
-                        <h1 className="text-5xl md:text-7xl font-cinzel text-gold drop-shadow-lg mb-4">ROUND 2 UNLOCKED!</h1>
-                        <p className="text-white text-xl font-hand">The Goblet of Fire accepts your entry.</p>
-
-                        <a
-                            href="https://app.easyevaluate.com/attendee/test/COL4U2onYy"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-block px-12 py-6 bg-gradient-to-r from-yellow-600 to-yellow-400 text-black font-bold text-3xl rounded-lg shadow-[0_0_50px_rgba(250,204,21,0.6)] animate-pulse hover:scale-105 transition-transform"
-                        >
-                            ENTER ROUND 2
-                        </a>
-                    </motion.div>
-                ) : showGatekeeper ? (
-                    // --- 2. GATEKEEPER UI (Stage 5 Reached) ---
-                    <MagicCard title="The Final Gate" className="w-full text-center py-10">
-                        <p className="text-xl mb-6 font-hand">You have collected all fragments. Speak the password to enter.</p>
-
-                        <div className="bg-black/10 p-6 rounded mb-6 font-mono text-3xl tracking-widest font-bold">
-                            {getRevealedPassword()}
+                    {/* Game Status or content */}
+                    {!isGameActive ? (
+                        <div className="text-center py-20">
+                            <h2 className="text-3xl font-bold animate-pulse text-yellow-500">The Tournament is Paused</h2>
+                            <p className="opacity-60 mt-2">The Headmaster is speaking...</p>
                         </div>
-
-                        <form onSubmit={handleGatekeeperSubmit} className="max-w-md mx-auto space-y-4">
-                            <input
-                                value={gatekeeperInput}
-                                onChange={e => { setGatekeeperInput(e.target.value); setGatekeeperError(""); }}
-                                placeholder="Enter Secret Password"
-                                className="w-full p-4 text-center text-2xl font-bold bg-white border-2 border-black rounded uppercase"
-                            />
-                            {gatekeeperError && <p className="text-red-500 font-bold">{gatekeeperError}</p>}
-
-                            <button className="w-full py-4 bg-black text-white font-bold text-xl rounded shadow-lg hover:bg-gray-800">
-                                UNLOCK GATE
-                            </button>
-                        </form>
-                    </MagicCard>
-                ) : (
-                    // --- 3. NORMAL GAMEPLAY ---
-                    <>
-                        {/* Secret Notebook */}
-                        <div className="w-full mb-6">
-                            <div className={`p-4 rounded-lg bg-black/20 border ${theme.border} flex justify-between items-center`}>
-                                <span className={`font-cinzel font-bold ${theme.text}`}>Secret Notebook:</span>
-                                <span className="font-mono text-xl tracking-[0.5em] font-bold bg-white/10 px-4 py-1 rounded">
-                                    {getRevealedPassword()}
-                                </span>
-                            </div>
+                    ) : gameStatus === 'finished' ? (
+                        <div className="p-8 rounded-2xl bg-black/60 border border-yellow-500 text-center space-y-4 shadow-[0_0_50px_rgba(234,179,8,0.3)]">
+                            <h1 className="text-5xl font-bold text-yellow-400">VICTORY</h1>
+                            <p className="text-xl">You have completed the Triwizard Quest.</p>
                         </div>
-
-                        <MagicCard className="w-full mb-8 relative overflow-hidden min-h-[300px] flex flex-col items-center justify-center bg-white/90">
-                            <div className="absolute top-4 left-4 text-black/40 text-sm font-cinzel">Current Hint</div>
-
-                            {/* Progress Bar */}
-                            <div className="w-full h-1 bg-black/10 rounded-full mb-8 max-w-md mx-auto mt-6">
-                                <div className={`h-full ${theme.accent} rounded-full transition-all duration-1000`} style={{ width: `${(Math.min(currentStage, 5) / 5) * 100}%` }}></div>
-                            </div>
-
-                            <div className={`absolute top-4 right-4 w-10 h-10 border-2 ${theme.border} rounded-full flex items-center justify-center font-bold ${theme.text} ${theme.bg}`}>
-                                {Math.min(currentStage + 1, 5)}
-                            </div>
-
-                            <p className="text-3xl md:text-5xl font-hand text-center leading-relaxed max-w-2xl px-4 py-8 text-black">
-                                &quot;{clue}&quot;
-                            </p>
-                        </MagicCard>
-
-                        <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() => setIsScanning(true)}
-                            className={`fixed bottom-10 right-10 md:static md:mt-8 w-20 h-20 md:w-32 md:h-32 rounded-full ${theme.accent} border-4 ${theme.border} shadow-[0_0_40px_rgba(255,255,255,0.2)] flex items-center justify-center z-40 group`}
-                        >
-                            <div className="text-4xl md:text-6xl group-hover:rotate-180 transition-transform duration-500">🪄</div>
-                        </motion.button>
-                    </>
-                )}
-
-                {/* Scanner Modal */}
-                <AnimatePresence>
-                    {isScanning && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 100 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 100 }}
-                            className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-4"
-                        >
-                            <button onClick={() => setIsScanning(false)} className="absolute top-6 right-6 text-white text-4xl hover:text-red-500">&times;</button>
-                            <h2 className={`${theme.text} font-cinzel text-2xl mb-4`}>Cast Your Spell</h2>
-                            <div className={`w-full max-w-md aspect-square border-4 ${theme.border} rounded-lg overflow-hidden relative`}>
-                                <Scanner
-                                    onScan={(result: ScanResult[]) => { if (result && result.length > 0) handleScan(result[0].rawValue); }}
-                                    onError={(error: unknown) => console.log(error)} // eslint-disable-line @typescript-eslint/no-explicit-any
-                                    components={{ onOff: true, torch: true }}
+                    ) : currentStage >= 5 ? (
+                        // GATEKEEPER MODE
+                        <div className={`p-8 rounded-2xl bg-black/60 border-2 ${theme.border} ${theme.glow} text-center space-y-6`}>
+                            <h2 className="text-3xl text-red-500 tracking-[0.2em] font-bold">THE FINAL PORTAL</h2>
+                            <p className="text-white/70">Enter the 8-character Secret Password to claim victory.</p>
+                            <div className="font-mono text-3xl tracking-[0.5em] text-white my-4">{getRevealedPassword()}</div>
+                            <form onSubmit={handleGatekeeper} className="max-w-md mx-auto flex gap-2">
+                                <input
+                                    className="flex-1 bg-black/50 border border-white/30 p-3 rounded text-center outline-none focus:border-red-500"
+                                    placeholder="PASSWORD"
+                                    value={gatekeeperInput}
+                                    onChange={e => setGatekeeperInput(e.target.value)}
                                 />
-                            </div>
-                            <div className="mt-8 h-20 flex items-center justify-center w-full">
-                                {scanStatus === 'success' && <div className="bg-green-600 text-white px-6 py-3 rounded-full font-cinzel text-xl border-2 border-white">✨ {feedbackMsg} ✨</div>}
-                                {scanStatus === 'error' && <div className="bg-red-600 text-white px-6 py-3 rounded-full font-cinzel text-xl border-2 border-red-300">❌ {feedbackMsg}</div>}
-                                {scanStatus === 'idle' && <p className="text-white/50 font-hand text-xl">Find: {teamHouse}_Stage_{currentStage + 1}</p>}
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                                <button type="submit" className="bg-red-600 px-6 py-2 rounded font-bold hover:bg-red-700">UNLOCK</button>
+                            </form>
+                        </div>
+                    ) : (
+                        // NORMAL GAMEPLAY
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-            </div>
+                            {/* Left: Quest Journal */}
+                            <div className="space-y-6">
+                                <QuestJournal
+                                    clue={currentClue}
+                                    stage={displayStage}
+                                    house={user.house}
+                                />
+                                <InventoryPouch revealedPassword={getRevealedPassword()} />
+                            </div>
+
+                            {/* Right: Actions / Scanner */}
+                            <div className="flex flex-col gap-6">
+                                <div className={`flex-1 min-h-[300px] rounded-2xl bg-black/30 border ${theme.border} flex items-center justify-center relative overflow-hidden group hover:bg-black/40 transition-colors cursor-pointer`}
+                                    onClick={handleStartScanning}
+                                >
+                                    <div className={`absolute inset-0 bg-gradient-to-t from-${theme.accent.split('-')[1]}-900/20 to-transparent`} />
+                                    <div className="text-center z-10 space-y-4">
+                                        <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center mx-auto backdrop-blur-md border border-white/20 group-hover:scale-110 transition-transform">
+                                            <span className="text-4xl">📷</span>
+                                        </div>
+                                        <h3 className="text-xl font-bold tracking-widest">SCAN RUNE</h3>
+                                        <p className="text-xs opacity-50 px-8">Find the QR code at location #{displayStage} <br /> ({user.path.toUpperCase()} PATH)</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    )}
+                </motion.div>
+            )}
+
+            {/* FULL SCREEN SCANNER OVERLAY */}
+            <AnimatePresence>
+                {isScanning && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-4 backdrop-blur-sm"
+                    >
+                        {/* Close Button Top Right */}
+                        <button
+                            onClick={() => setIsScanning(false)}
+                            className="absolute top-8 right-8 text-white/80 hover:text-white transition-colors"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+
+                        <h2 className="text-2xl mb-8 tracking-[0.3em] text-white/80 font-cinzel">ALIGN THE RUNE</h2>
+
+                        {/* Scanner Container */}
+                        <div className={`relative w-full max-w-sm aspect-square rounded-xl overflow-hidden border-4 ${theme.border} shadow-[0_0_50px_rgba(255,255,255,0.1)]`}>
+                            <Scanner
+                                onScan={(res) => {
+                                    if (res && res.length > 0) {
+                                        handleScan(res[0].rawValue);
+                                    }
+                                }}
+                                paused={scanFeedback.type === 'success'}
+                            />
+
+                            {/* Overlay Frame (Magical Lens) */}
+                            <div className="absolute inset-0 border-[40px] border-black/60 z-10 pointer-events-none" />
+
+                            {/* Corner Markers */}
+                            <div className="absolute inset-4 pointer-events-none z-20 opacity-60">
+                                <div className={`absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 ${theme.border.replace('border-', 'border-')}`} />
+                                <div className={`absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 ${theme.border.replace('border-', 'border-')}`} />
+                                <div className={`absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 ${theme.border.replace('border-', 'border-')}`} />
+                                <div className={`absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 ${theme.border.replace('border-', 'border-')}`} />
+                            </div>
+
+                            {/* Scanning Laser Line */}
+                            <motion.div
+                                animate={{ top: ['10%', '90%', '10%'] }}
+                                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                                className="absolute left-[10%] right-[10%] h-[2px] bg-red-500/80 shadow-[0_0_10px_red] z-20 pointer-events-none"
+                            />
+                        </div>
+
+                        {/* Close Button Bottom (Mobile Friendly) */}
+                        <button
+                            onClick={() => setIsScanning(false)}
+                            className="mt-8 px-8 py-3 bg-white/10 border border-white/20 rounded-full font-bold tracking-widest hover:bg-white/20 transition-all uppercase text-sm"
+                        >
+                            Close Magical Lens
+                        </button>
+
+                        {/* Feedback Text */}
+                        <div className="mt-8 h-12 text-center">
+                            {scanFeedback.type === 'idle' && <p className="animate-pulse text-white/50 text-lg">Searching for Signal...</p>}
+                            {scanFeedback.type === 'success' && <p className="text-green-400 text-xl font-bold font-cinzel drop-shadow-md">✨ {scanFeedback.msg}</p>}
+                            {scanFeedback.type === 'error' && <p className="text-red-400 text-xl font-bold font-cinzel drop-shadow-md whitespace-pre-wrap px-4">⚠️ {scanFeedback.msg}</p>}
+                        </div>
+
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
         </div>
     );
 }

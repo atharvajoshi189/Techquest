@@ -1,22 +1,25 @@
 import type { Metadata } from "next";
-import { Cinzel, Dancing_Script } from "next/font/google";
+import { Orbitron, Rajdhani } from "next/font/google";
 import "./globals.css";
 
-const cinzel = Cinzel({
+// Load Orbitron for Headers (Tech/Sci-Fi)
+const orbitron = Orbitron({
   subsets: ["latin"],
-  variable: "--font-cinzel",
+  variable: "--font-orbitron",
   display: "swap",
 });
 
-const dancing = Dancing_Script({
+// Load Rajdhani for Body (Clean/Futuristic)
+const rajdhani = Rajdhani({
   subsets: ["latin"],
-  variable: "--font-dancing",
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-rajdhani",
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "TechQuest: Triwizard Tournament",
-  description: "The magical hunt begins.",
+  title: "TechQuest 2025",
+  description: "Explore the Unknown",
 };
 
 export default function RootLayout({
@@ -26,7 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${cinzel.variable} ${dancing.variable} font-cinzel bg-parchment text-ink-black`}>
+      <body className={`${orbitron.variable} ${rajdhani.variable} font-body bg-void-black text-white antialiased`}>
         {children}
       </body>
     </html>
