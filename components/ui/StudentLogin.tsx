@@ -7,12 +7,16 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 
 import { DocumentData } from "firebase/firestore";
 
+import useIsMobile from "@/hooks/useIsMobile";
+import { MobileStudentLogin } from "./MobileStudentLogin";
+
 // Candle component removed as per user request
 
 // ---------------------------
 // Main Component
 // ---------------------------
 export function StudentLogin({ onLoginSuccess }: { onLoginSuccess: (teamId: string, teamData: DocumentData) => void }) {
+    const isMobile = useIsMobile();
     const [loading, setLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
 
@@ -81,6 +85,10 @@ export function StudentLogin({ onLoginSuccess }: { onLoginSuccess: (teamId: stri
             setLoading(false);
         }
     };
+
+    if (isMobile) {
+        return <MobileStudentLogin onLoginSuccess={onLoginSuccess} />;
+    }
 
     return (
         <div className="relative w-full min-h-screen flex items-center justify-center overflow-hidden">

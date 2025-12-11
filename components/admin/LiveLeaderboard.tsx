@@ -183,21 +183,19 @@ export function LiveLeaderboard({ teams, currentTime, startTime }: LiveLeaderboa
     // Primary: Score (Desc), Secondary: Stage (Desc), Tertiary: Time (Asc)
     const sortedTeams = useMemo(() => {
         return [...teams].sort((a, b) => {
-            // Rule 1: Higher Score is better
+            // Rule 1: Higher Stage is better (PRIMARY)
+            if (a.current_stage !== b.current_stage) {
+                return b.current_stage - a.current_stage;
+            }
+
+            // Rule 2: Higher Score is better (SECONDARY)
             const scoreA = a.score || 0;
             const scoreB = b.score || 0;
             if (scoreA !== scoreB) {
                 return scoreB - scoreA;
             }
 
-            // Rule 2: Higher Stage is better
-            if (a.current_stage !== b.current_stage) {
-                return b.current_stage - a.current_stage;
-            }
-
-            // Rule 3: Lower Time is better
-            // If startTime is not set, we can't really compare time accurately globally, 
-            // but we can fallback to old startedAt logic if needed, or just equal.
+            // Rule 3: Lower Time is better (TERTIARY)
             // If startTime IS set:
             const getEnd = (t: Team) => t.finishedAt ? t.finishedAt.seconds * 1000 : currentTime;
             const timeA = getEnd(a);

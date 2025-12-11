@@ -8,6 +8,8 @@ import { db } from '../firebase';
 import { doc, onSnapshot, updateDoc, serverTimestamp, increment } from 'firebase/firestore';
 import { QuestJournal } from '@/components/dashboard/QuestJournal';
 import { InventoryPouch } from '@/components/dashboard/InventoryPouch';
+import useIsMobile from '@/hooks/useIsMobile';
+import MobileStudentDashboard from '@/components/dashboard/MobileStudentDashboard';
 
 // --- Types ---
 interface UserSession {
@@ -88,6 +90,7 @@ const CLUE_DATA = {
 
 export default function StudentDashboard() {
     const router = useRouter();
+    const isMobile = useIsMobile();
 
     // State
     const [user, setUser] = useState<UserSession | null>(null);
@@ -262,23 +265,29 @@ export default function StudentDashboard() {
 
     if (!user) return <div className="bg-black text-white h-screen flex items-center justify-center">Summoning Wizard...</div>;
 
+    // --- 0. INTRO VIDEO FLOW (Enforce for BOTH) ---
+    if (showIntro) {
+        return (
+            <AnimatePresence>
+                <IntroVideo
+                    house={user.house}
+                    videoSrc={`/videos_${user.house.charAt(0).toLowerCase()}.webm`}
+                    onComplete={() => setShowIntro(false)}
+                />
+            </AnimatePresence>
+        );
+    }
+
+    if (isMobile) {
+        return <MobileStudentDashboard />;
+    }
+
     return (
         <div className={`min-h-screen relative overflow-hidden font-cinzel text-white transition-all duration-1000 ${theme.bgGradient}`}>
 
             {/* Background Texture Overlay */}
             <div className="absolute inset-0 opacity-20 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] mix-blend-overlay" />
 
-            {/* Intro Video (One time) */}
-            <AnimatePresence>
-                {showIntro && (
-                    <IntroVideo
-                        house={user.house}
-                        // Simplified video logic: just pass house, component handles fallback if needed or we assume standard naming
-                        videoSrc={`/videos_${user.house.charAt(0).toLowerCase()}.webm`}
-                        onComplete={() => setShowIntro(false)}
-                    />
-                )}
-            </AnimatePresence>
 
             {/* Main Content */}
             {!showIntro && (
