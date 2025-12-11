@@ -7,37 +7,7 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 
 import { DocumentData } from "firebase/firestore";
 
-// ---------------------------
-// Sub-Component: Realistic Candle
-// ---------------------------
-function Candle({ delay = 0, x = 0, y = 0, scale = 1 }: { delay?: number; x?: number; y?: number; scale?: number }) {
-    return (
-        <motion.div
-            initial={{ y: 0 }}
-            animate={{ y: [-10, 10, -10] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay }}
-            className="absolute z-10"
-            style={{ left: x, top: y, transform: `scale(${scale})` }}
-        >
-            {/* Candle Body */}
-            <div className="w-4 h-24 bg-gradient-to-r from-stone-200 to-stone-100 rounded-sm shadow-lg relative">
-                {/* Wax Drips */}
-                <div className="absolute top-0 left-0 w-full h-4 bg-stone-100 rounded-t-sm" />
-                <div className="absolute top-2 left-[-2px] w-1 h-6 bg-stone-100 rounded-full" />
-                <div className="absolute top-1 right-[-1px] w-1 h-4 bg-stone-100 rounded-full" />
-
-                {/* Flame */}
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-4 h-4 flex justify-center items-end">
-                    <div className="w-2 h-4 bg-orange-400 rounded-[50%] animate-flicker relative blur-[1px]">
-                        <div className="absolute top-1 left-1/2 -translate-x-1/2 w-1 h-2 bg-yellow-200 rounded-full opacity-80" />
-                    </div>
-                    {/* Glow */}
-                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-16 h-16 bg-orange-500/20 rounded-full blur-xl animate-pulse" />
-                </div>
-            </div>
-        </motion.div>
-    );
-}
+// Candle component removed as per user request
 
 // ---------------------------
 // Main Component
@@ -137,26 +107,9 @@ export function StudentLogin({ onLoginSuccess }: { onLoginSuccess: (teamId: stri
 
             {/* 
         ==============================
-        ATMOSPHERE: Floating Candles
+        ATMOSPHERE: Floating Candles (REMOVED)
         ==============================
       */}
-            <div className="absolute w-full h-full max-w-4xl pointer-events-none overflow-hidden">
-                {/* Desktop Candles (Original Positions) */}
-                <div className="hidden md:block">
-                    <Candle x={-20} y={50} delay={0} scale={0.6} />
-                    <Candle x={-120} y={200} delay={1} scale={0.7} />
-                    <Candle x={580} y={80} delay={2} scale={0.9} />
-                    <Candle x={300} y={250} delay={0.5} scale={0.8} />
-                </div>
-
-                {/* Mobile Candles (Adjusted for small screen) */}
-                <div className="md:hidden">
-                    <Candle x={10} y={50} delay={0} scale={0.5} />
-                    <Candle x={200} y={250} delay={0.5} scale={0.5} />
-                    <Candle x={-20} y={120} delay={1.5} scale={0.4} />
-                    <Candle x={280} y={400} delay={0.8} scale={0.4} />
-                </div>
-            </div>
 
             {/* 
         ==============================

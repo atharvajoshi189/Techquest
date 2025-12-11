@@ -15,8 +15,9 @@ interface UserSession {
     teamName: string;
     leader: string;
     house: string;
-    path: 'alpha' | 'beta';
+    path: 'alpha' | 'beta' | 'gamma';
     currentStage: number;
+    score?: number;
 }
 
 interface QRPayload {
@@ -70,10 +71,17 @@ const CLUE_DATA = {
     beta: {
         1: "A plate of noodles and a drink so cool, A poster here makes you drool.",
         2: "I’m the hub where minds huddle — find me! ",
-        3: "Where answers end and marks begin — Seek the cell that judges if you lose or win. ",
+        3: "Not a classroom, not a mall, yet many dreams begin here small, wehere help is granted to those who try your treassure moves where futures fly. ",
         4: "I stand by the road, round and tall, Show you yourself, no glass hall. Plants around me.",
         5: "Under my giant metal crown, Athletes cheer and never frown... Come here — where champions play! "
-    } as Record<number, string>
+    } as Record<number, string>,
+    gamma: {
+        1: "Always stand in front of canteen but only get waste to eat.",
+        2: "I point the way but never walked , I speak direction without talk. ",
+        3: "A stage with screen where we showcase your talent/n find where I am!",
+        4: "I am marked with lines but not a notebook I hold two nets yet catch no fish./n Seek me where whistle rule the air , here clue awaits where players dare!",
+        5: "I give shadow in the sun and place to sit and to cheer like audience and have fun! "
+    } as Record<number, string>,
 };
 
 // --- Main Component ---
@@ -116,8 +124,14 @@ export default function StudentDashboard() {
         if (!user?.teamId) return;
 
         // Game Settings
-        const unsubConfig = onSnapshot(doc(db, "config", "game_settings"), (d) => {
-            if (d.exists()) setIsGameActive(d.data().isGameActive);
+        // Game Settings (Metadata)
+        const unsubConfig = onSnapshot(doc(db, "config", "metadata"), (d) => {
+            if (d.exists()) {
+                const data = d.data();
+                setIsGameActive(data.isStarted);
+            } else {
+                setIsGameActive(false);
+            }
         });
 
         // Team Progress
@@ -176,6 +190,13 @@ export default function StudentDashboard() {
             // e.g. "alpha" vs "alpha"
             if (payload.path_id !== user.path) {
                 setScanFeedback({ type: 'error', msg: `Wrong Path! This rune belongs to ${payload.path_id}.` });
+                // Deduct points for wrong scan
+                const isSafe = currentStage === 0; // First stage safety
+                if (!isSafe) {
+                    updateDoc(doc(db, "teams", user.teamId), {
+                        score: increment(-10)
+                    }).catch(e => console.error(e));
+                }
                 return;
             }
 
@@ -188,6 +209,13 @@ export default function StudentDashboard() {
             // But if user scans Stage 1 when they are at 0, it matches.
             if (payload.stage !== targetStage) {
                 setScanFeedback({ type: 'error', msg: `Wrong Clue! You are looking for Stage ${targetStage}, found ${payload.stage}.` });
+                // Deduct points for wrong scan
+                const isSafe = currentStage === 0; // First stage safety
+                if (!isSafe) {
+                    updateDoc(doc(db, "teams", user.teamId), {
+                        score: increment(-10)
+                    }).catch(e => console.error(e));
+                }
                 return;
             }
 
@@ -203,6 +231,7 @@ export default function StudentDashboard() {
                     const teamRef = doc(db, "teams", user.teamId);
                     await updateDoc(teamRef, {
                         current_stage: increment(1),
+                        score: increment(20),
                         last_updated: serverTimestamp()
                     });
                 } catch (updateErr) {

@@ -16,18 +16,20 @@ interface Team {
     startedAt?: number;
     finishedAt?: { seconds: number };
     round2_password?: string;
+    score?: number; // Added score field
 }
 
 interface LiveLeaderboardProps {
     teams: Team[];
     currentTime: number;
+    startTime: number | null; // Added global start time
 }
 
 const HOUSE_COLORS: Record<string, string> = {
-    'Gryffindor': '#740001', // Deep Red
-    'Slytherin': '#1a472a', // Deep Green
-    'Ravenclaw': '#0e1a40', // Deep Blue
-    'Hufflepuff': '#ecb939' // Gold/Yellow
+    'Gryffindor': '#740001',
+    'Slytherin': '#1a472a',
+    'Ravenclaw': '#0e1a40',
+    'Hufflepuff': '#ecb939'
 };
 
 const HOUSE_BG_GRADIENTS: Record<string, string> = {
@@ -45,30 +47,165 @@ const formatDuration = (ms: number) => {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 };
 
-export function LiveLeaderboard({ teams, currentTime }: LiveLeaderboardProps) {
+// --- TeamRow Component for Individual Animation Logic ---
+const TeamRow = ({ team, index, currentTime, startTime }: { team: Team, index: number, currentTime: number, startTime: number | null }) => {
+    const [scoreDelta, setScoreDelta] = React.useState<{ val: number, id: number } | null>(null);
+    const prevScore = React.useRef(team.score || 0);
+
+    React.useEffect(() => {
+        const current = team.score || 0;
+        const diff = current - prevScore.current;
+        if (diff !== 0) {
+            setScoreDelta({ val: diff, id: Date.now() });
+            prevScore.current = current;
+            // Clear bubble after animation
+            setTimeout(() => setScoreDelta(null), 2000);
+        }
+    }, [team.score]);
+
+    const isFinished = team.status === 'finished';
+    const progress = (team.current_stage / 5) * 100;
+
+    // Timer Logic: (Now - GlobalStart) OR (FinishedTime - GlobalStart)
+    // If GlobalStart is null (not started), duration is 0.
+    // If team has startedAt (legacy) we can ignore it or use it as fallback? 
+    // Requirement says "Sets a global variable tournamentStartTime... All connected Student devices detect this change and START their timers".
+    // So we rely on startTime.
+    let duration = 0;
+    if (startTime) {
+        const end = team.finishedAt ? team.finishedAt.seconds * 1000 : currentTime;
+        duration = end - startTime;
+    }
+
+    // Rank Styles
+    let rankIcon = <span className="text-white/20 font-mono text-xl">#{index + 1}</span>;
+    let cardBorder = "border-white/5";
+    let cardGlow = "";
+
+    if (index === 0) {
+        rankIcon = <span className="text-3xl drop-shadow-[0_0_10px_rgba(255,215,0,0.8)]">👑</span>;
+        cardBorder = "border-yellow-500/50";
+        cardGlow = "shadow-[0_0_30px_rgba(255,215,0,0.15)]";
+    } else if (index === 1) {
+        rankIcon = <span className="text-2xl drop-shadow-[0_0_10px_rgba(192,192,192,0.8)]">🥈</span>;
+        cardBorder = "border-slate-400/50";
+    } else if (index === 2) {
+        rankIcon = <span className="text-2xl drop-shadow-[0_0_10px_rgba(205,127,50,0.8)]">🥉</span>;
+        cardBorder = "border-orange-700/50";
+    }
+
+    return (
+        <motion.li
+            layout
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 45, damping: 12 }}
+            className={`relative rounded-xl border ${cardBorder} ${cardGlow} bg-black/40 backdrop-blur-md overflow-hidden group`}
+        >
+            {/* House Gradient Background */}
+            <div
+                className="absolute inset-0 opacity-30 transition-opacity group-hover:opacity-50"
+                style={{ background: HOUSE_BG_GRADIENTS[team.house] || HOUSE_BG_GRADIENTS['Gryffindor'] }}
+            />
+
+            <div className="relative z-10 p-4 flex items-center gap-6">
+
+                {/* Rank */}
+                <div className="w-12 flex justify-center flex-shrink-0">
+                    {rankIcon}
+                </div>
+
+                {/* Team Info */}
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-1">
+                        <h3 className="text-xl font-bold text-white tracking-wide truncate">
+                            {team.name}
+                        </h3>
+                        <span
+                            className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-white/10 text-white/60"
+                            style={{ color: HOUSE_COLORS[team.house] }}
+                        >
+                            {team.house}
+                        </span>
+
+                        {/* Score Bubble Animation */}
+                        <AnimatePresence>
+                            {scoreDelta && (
+                                <motion.span
+                                    key={scoreDelta.id}
+                                    initial={{ opacity: 0, y: 10, scale: 0.5 }}
+                                    animate={{ opacity: 1, y: -20, scale: 1.2 }}
+                                    exit={{ opacity: 0, y: -30 }} // Fade out upwards
+                                    className={`ml-2 text-sm font-bold px-2 py-1 rounded-full ${scoreDelta.val > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}
+                                >
+                                    {scoreDelta.val > 0 ? '+' : ''}{scoreDelta.val}
+                                </motion.span>
+                            )}
+                        </AnimatePresence>
+                    </div>
+
+                    {/* Magical Progress Bar */}
+                    <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden relative">
+                        <motion.div
+                            className="absolute top-0 left-0 h-full rounded-full"
+                            style={{ backgroundColor: HOUSE_COLORS[team.house] || '#fff' }}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${Math.min(progress, 100)}%` }}
+                            transition={{ duration: 1 }}
+                        >
+                            <div className="absolute inset-0 bg-white/30 animate-pulse" />
+                        </motion.div>
+                    </div>
+                    <div className="mt-1 flex justify-between text-xs text-white/40 font-mono">
+                        <span>Stage {Math.min(team.current_stage, 5)} / 5</span>
+                        <span className="text-white/60 font-bold">SCORE: {team.score || 0}</span>
+                        {isFinished && <span className="text-green-400 font-bold animate-pulse">FINISHED</span>}
+                    </div>
+                </div>
+
+                {/* Timer (Runes) */}
+                <div className="flex flex-col items-end flex-shrink-0 pl-4 border-l border-white/10">
+                    <div className="font-mono text-2xl text-cyan-200 drop-shadow-[0_0_5px_rgba(34,211,238,0.6)] tracking-widest tabular-nums">
+                        {formatDuration(duration)}
+                    </div>
+                    <div className="text-[10px] uppercase tracking-widest text-cyan-700">Time Elapsed</div>
+                </div>
+
+            </div>
+        </motion.li>
+    );
+};
+
+export function LiveLeaderboard({ teams, currentTime, startTime }: LiveLeaderboardProps) {
 
     // --- 1. Sorting Logic ---
-    // Primary: Stage (Desc), Secondary: Time (Asc)
+    // Primary: Score (Desc), Secondary: Stage (Desc), Tertiary: Time (Asc)
     const sortedTeams = useMemo(() => {
         return [...teams].sort((a, b) => {
-            // Rule 1: Higher Stage is better
+            // Rule 1: Higher Score is better
+            const scoreA = a.score || 0;
+            const scoreB = b.score || 0;
+            if (scoreA !== scoreB) {
+                return scoreB - scoreA;
+            }
+
+            // Rule 2: Higher Stage is better
             if (a.current_stage !== b.current_stage) {
                 return b.current_stage - a.current_stage;
             }
 
-            // Rule 2: Lower Time is better
-            // Time is essentially: (Now/Finished - StartedAt)
-            // Since StartedAt is roughly same for all (or close), earlier 'last_updated' for same stage usually implies faster.
-            // Better metric: If finished, use fixed duration. If active, use current duration.
-            const getDuration = (t: Team) => {
-                const end = t.finishedAt ? t.finishedAt.seconds * 1000 : currentTime;
-                const start = t.startedAt || currentTime;
-                return end - start;
-            };
+            // Rule 3: Lower Time is better
+            // If startTime is not set, we can't really compare time accurately globally, 
+            // but we can fallback to old startedAt logic if needed, or just equal.
+            // If startTime IS set:
+            const getEnd = (t: Team) => t.finishedAt ? t.finishedAt.seconds * 1000 : currentTime;
+            const timeA = getEnd(a);
+            const timeB = getEnd(b);
 
-            return getDuration(a) - getDuration(b);
+            return timeA - timeB;
         });
-    }, [teams, currentTime]);
+    }, [teams, currentTime, startTime]);
 
 
     return (
@@ -93,97 +230,15 @@ export function LiveLeaderboard({ teams, currentTime }: LiveLeaderboardProps) {
                 {/* List Container */}
                 <ul className="flex-1 p-6 space-y-4 overflow-y-auto custom-scrollbar-magic relative z-10">
                     <AnimatePresence>
-                        {sortedTeams.map((team, index) => {
-                            const progress = (team.current_stage / 5) * 100;
-                            const isFinished = team.status === 'finished';
-
-                            // Rank Styles
-                            let rankIcon = <span className="text-white/20 font-mono text-xl">#{index + 1}</span>;
-                            let cardBorder = "border-white/5";
-                            let cardGlow = "";
-
-                            if (index === 0) {
-                                rankIcon = <span className="text-3xl drop-shadow-[0_0_10px_rgba(255,215,0,0.8)]">👑</span>;
-                                cardBorder = "border-yellow-500/50";
-                                cardGlow = "shadow-[0_0_30px_rgba(255,215,0,0.15)]";
-                            } else if (index === 1) {
-                                rankIcon = <span className="text-2xl drop-shadow-[0_0_10px_rgba(192,192,192,0.8)]">🥈</span>;
-                                cardBorder = "border-slate-400/50";
-                            } else if (index === 2) {
-                                rankIcon = <span className="text-2xl drop-shadow-[0_0_10px_rgba(205,127,50,0.8)]">🥉</span>;
-                                cardBorder = "border-orange-700/50";
-                            }
-
-                            // Time
-                            const duration = team.startedAt ? (team.finishedAt ? team.finishedAt.seconds * 1000 : currentTime) - team.startedAt : 0;
-
-                            return (
-                                <motion.li
-                                    key={team.id}
-                                    layout // The Magic Reordering Prop
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, scale: 0.95 }}
-                                    transition={{ type: "spring", stiffness: 45, damping: 12 }}
-                                    className={`relative rounded-xl border ${cardBorder} ${cardGlow} bg-black/40 backdrop-blur-md overflow-hidden group`}
-                                >
-                                    {/* House Gradient Background */}
-                                    <div
-                                        className="absolute inset-0 opacity-30 transition-opacity group-hover:opacity-50"
-                                        style={{ background: HOUSE_BG_GRADIENTS[team.house] || HOUSE_BG_GRADIENTS['Gryffindor'] }}
-                                    />
-
-                                    <div className="relative z-10 p-4 flex items-center gap-6">
-
-                                        {/* Rank */}
-                                        <div className="w-12 flex justify-center flex-shrink-0">
-                                            {rankIcon}
-                                        </div>
-
-                                        {/* Team Info */}
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-3 mb-1">
-                                                <h3 className="text-xl font-bold text-white tracking-wide truncate">
-                                                    {team.name}
-                                                </h3>
-                                                <span
-                                                    className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-white/10 text-white/60"
-                                                    style={{ color: HOUSE_COLORS[team.house] }}
-                                                >
-                                                    {team.house}
-                                                </span>
-                                            </div>
-
-                                            {/* Magical Progress Bar */}
-                                            <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden relative">
-                                                <motion.div
-                                                    className="absolute top-0 left-0 h-full rounded-full"
-                                                    style={{ backgroundColor: HOUSE_COLORS[team.house] || '#fff' }}
-                                                    initial={{ width: 0 }}
-                                                    animate={{ width: `${Math.min(progress, 100)}%` }}
-                                                    transition={{ duration: 1 }}
-                                                >
-                                                    <div className="absolute inset-0 bg-white/30 animate-pulse" />
-                                                </motion.div>
-                                            </div>
-                                            <div className="mt-1 flex justify-between text-xs text-white/40 font-mono">
-                                                <span>Stage {Math.min(team.current_stage, 5)} / 5</span>
-                                                {isFinished && <span className="text-green-400 font-bold animate-pulse">FINISHED</span>}
-                                            </div>
-                                        </div>
-
-                                        {/* Timer (Runes) */}
-                                        <div className="flex flex-col items-end flex-shrink-0 pl-4 border-l border-white/10">
-                                            <div className="font-mono text-2xl text-cyan-200 drop-shadow-[0_0_5px_rgba(34,211,238,0.6)] tracking-widest tabular-nums">
-                                                {formatDuration(duration)}
-                                            </div>
-                                            <div className="text-[10px] uppercase tracking-widest text-cyan-700">Time Elapsed</div>
-                                        </div>
-
-                                    </div>
-                                </motion.li>
-                            );
-                        })}
+                        {sortedTeams.map((team, index) => (
+                            <TeamRow
+                                key={team.id}
+                                team={team}
+                                index={index}
+                                currentTime={currentTime}
+                                startTime={startTime}
+                            />
+                        ))}
                     </AnimatePresence>
                 </ul>
 

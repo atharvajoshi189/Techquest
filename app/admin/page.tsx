@@ -11,7 +11,10 @@ import {
     // orderBy, 
     serverTimestamp,
     doc,
-    setDoc
+    setDoc,
+    writeBatch,
+    where,
+    updateDoc
 } from "firebase/firestore";
 import { MagicScroll } from '@/components/admin/MagicScroll';
 import { LiveLeaderboard } from '@/components/admin/LiveLeaderboard';
@@ -30,7 +33,8 @@ interface Team {
     startedAt?: number;
     finishedAt?: { seconds: number };
     round2_password?: string;
-    path?: 'alpha' | 'beta';
+    path?: 'alpha' | 'beta' | 'gamma';
+    score?: number;
 }
 
 
@@ -60,11 +64,15 @@ const formatDuration = (ms: number) => {
 // --- Main Component ---
 
 export default function AdminPage() {
-    const [activeTab, setActiveTab] = useState<'registration' | 'race'>('registration');
+    const [activeTab, setActiveTab] = useState<'registration' | 'race' | 'runes'>('registration');
     const [teams, setTeams] = useState<Team[]>([]);
     const [newTeam, setNewTeam] = useState({ name: '', leader: '', passcode: '', round2_password: '' });
     const [isGameActive, setIsGameActive] = useState(false);
     const [currentTime, setCurrentTime] = useState(Date.now());
+    const [tournamentStartTime, setTournamentStartTime] = useState<number | null>(null);
+    const [activeTournamentId, setActiveTournamentId] = useState<string | null>(null);
+    const [runePath, setRunePath] = useState<'alpha' | 'beta' | 'gamma'>('alpha');
+    const [runeStage, setRuneStage] = useState(1);
 
     // --- Authentication State ---
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -74,13 +82,29 @@ export default function AdminPage() {
     useEffect(() => {
         if (!isAuthenticated) return; // Only subscribe if authenticated
 
-        const unsubConfig = onSnapshot(doc(db, "config", "game_settings"), (doc) => {
+        // Listen to Config Metadata (Session Management)
+        const unsubConfig = onSnapshot(doc(db, "config", "metadata"), (doc) => {
             if (doc.exists()) {
-                setIsGameActive(doc.data().isGameActive);
+                const data = doc.data();
+                setIsGameActive(data.isStarted);
+                setTournamentStartTime(data.startTime ? data.startTime.toMillis() : null);
+                setActiveTournamentId(data.activeTournamentId);
             }
         });
 
-        const q = query(collection(db, "teams"));
+        const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
+
+        return () => {
+            unsubConfig();
+            clearInterval(timer);
+        };
+    }, [isAuthenticated]);
+
+    // Separate Effect for Teams (Depends on Tournament ID)
+    useEffect(() => {
+        if (!isAuthenticated || !activeTournamentId) return;
+
+        const q = query(collection(db, "teams"), where("tournamentId", "==", activeTournamentId));
         const unsubTeams = onSnapshot(q, (snapshot) => {
             const teamsData: Team[] = snapshot.docs.map(doc => ({
                 id: doc.id,
@@ -89,14 +113,8 @@ export default function AdminPage() {
             setTeams(teamsData);
         });
 
-        const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
-
-        return () => {
-            unsubConfig();
-            unsubTeams();
-            clearInterval(timer);
-        };
-    }, [isAuthenticated]);
+        return () => unsubTeams();
+    }, [isAuthenticated, activeTournamentId]);
 
     const sortedTeams = [...teams].sort((a, b) => {
         if (a.current_stage !== b.current_stage) {
@@ -108,13 +126,36 @@ export default function AdminPage() {
     });
 
     const handleStartGame = async () => {
+        if (teams.length === 0) return;
         if (!confirm("Are you sure you want to BEGIN THE TOURNAMENT?")) return;
         try {
-            await setDoc(doc(db, "config", "game_settings"), { isGameActive: true }, { merge: true });
+            await updateDoc(doc(db, "config", "metadata"), {
+                isStarted: true,
+                startTime: serverTimestamp()
+            });
             alert("The Tournament has begun!");
         } catch (e: unknown) {
             console.error(e);
             alert("Failed to start game.");
+        }
+    };
+
+    const handleNewTournament = async () => {
+        if (!confirm("START NEW SESSION? This will clear the current board (Data is saved).")) return;
+
+        const newTourneyId = "T_" + Date.now();
+        console.log("Generating New Tournament Session:", newTourneyId);
+
+        try {
+            await setDoc(doc(db, "config", "metadata"), {
+                activeTournamentId: newTourneyId,
+                isStarted: false,
+                startTime: null
+            });
+            alert(`New Session Started: ${newTourneyId}`);
+        } catch (err) {
+            console.error(err);
+            alert("Failed to create new session.");
         }
     };
 
@@ -133,12 +174,21 @@ export default function AdminPage() {
         }
 
         try {
-            // 2. The Sorting Hat (Random House Allocation)
-            const HOUSES = ['Gryffindor', 'Slytherin', 'Ravenclaw', 'Hufflepuff'];
-            const randomIndex = Math.floor(Math.random() * HOUSES.length);
-            const assignedHouse = HOUSES[randomIndex];
+            if (!activeTournamentId) {
+                alert("No Active Tournament Session! Click 'New Tournament' first.");
+                return;
+            }
 
-            const assignedPath = Math.random() < 0.5 ? 'alpha' : 'beta';
+            // 2. The Sorting Hat (Correct Random Logic)
+            const HOUSES = ['Gryffindor', 'Slytherin', 'Ravenclaw', 'Hufflepuff'];
+            const houseIndex = Math.floor(Math.random() * HOUSES.length);
+            const assignedHouse = HOUSES[houseIndex];
+
+            const PATHS: ('alpha' | 'beta' | 'gamma')[] = ['alpha', 'beta', 'gamma'];
+            const pathIndex = Math.floor(Math.random() * PATHS.length);
+            const assignedPath = PATHS[pathIndex];
+
+            console.log("Allocation Roll -> House:", assignedHouse, "Path:", assignedPath);
 
             const now = Date.now();
 
@@ -151,9 +201,11 @@ export default function AdminPage() {
                 current_stage: 0,
                 status: "active",
                 house: assignedHouse,
-                path: assignedPath, // Saved to Firestore
+                path: assignedPath,
                 startedAt: now,
-                last_updated: serverTimestamp()
+                score: 0,
+                last_updated: serverTimestamp(),
+                tournamentId: activeTournamentId // Session Link
             });
 
             setNewTeam({ name: '', leader: '', passcode: '', round2_password: '' });
@@ -247,17 +299,34 @@ export default function AdminPage() {
 
                         {/* Crystal Orb Status */}
                         <div className="relative group cursor-pointer" onClick={isGameActive ? undefined : handleStartGame}>
-                            <div className={`w-12 h-12 md:w-16 md:h-16 rounded-full border-4 ${isGameActive ? 'border-green-500 bg-green-900/50' : 'border-red-500 bg-red-900/50'} shadow-[0_0_20px_currentColor] flex items-center justify-center relative overflow-hidden transition-all duration-500`}>
-                                <div className={`absolute inset-0 ${isGameActive ? 'bg-green-400' : 'bg-red-500'} blur-xl opacity-40 animate-pulse`} />
-                                {/* Crystal Reflection */}
-                                <div className="absolute top-2 right-3 w-4 h-3 bg-white/40 rounded-full blur-[2px]" />
-                                <span className="relative z-10 text-lg md:text-2xl">{isGameActive ? '⚡' : '🔒'}</span>
-                            </div>
+                            {/* Pulsing Start Button */}
+                            {teams.length > 0 && !isGameActive ? (
+                                <div className="w-16 h-16 md:w-20 md:h-20 rounded-full border-4 border-green-500 bg-green-900/50 shadow-[0_0_30px_#22c55e] flex items-center justify-center relative overflow-hidden transition-transform hover:scale-105 active:scale-95 animate-pulse">
+                                    <span className="text-2xl md:text-3xl">🚀</span>
+                                </div>
+                            ) : (
+                                <div className={`w-12 h-12 md:w-16 md:h-16 rounded-full border-4 ${isGameActive ? 'border-green-500 bg-green-900/50' : 'border-red-500 bg-red-900/50'} shadow-[0_0_20px_currentColor] flex items-center justify-center relative overflow-hidden transition-all duration-500`}>
+                                    <div className={`absolute inset-0 ${isGameActive ? 'bg-green-400' : 'bg-red-500'} blur-xl opacity-40 animate-pulse`} />
+                                    {/* Crystal Reflection */}
+                                    <div className="absolute top-2 right-3 w-4 h-3 bg-white/40 rounded-full blur-[2px]" />
+                                    <span className="relative z-10 text-lg md:text-2xl">{isGameActive ? '⚡' : '🔒'}</span>
+                                </div>
+                            )}
+
                             <div className={`absolute top-full mt-2 left-1/2 -translate-x-1/2 text-[10px] md:text-xs font-bold tracking-widest uppercase whitespace-nowrap px-2 py-1 rounded bg-black/80 border ${isGameActive ? 'border-green-500 text-green-400' : 'border-red-500 text-red-400'}`}>
-                                {isGameActive ? "Active" : "Paused"}
+                                {isGameActive ? "Active" : teams.length === 0 ? "No Teams" : "Start Race"}
                             </div>
                         </div>
                     </div>
+
+                    {/* New Tournament Button */}
+                    <button
+                        onClick={handleNewTournament}
+                        className="mt-4 md:mt-0 md:ml-6 px-4 py-2 border border-blue-500/50 bg-blue-900/20 text-blue-400 text-xs font-bold tracking-widest hover:bg-blue-900/40 rounded transition-colors uppercase shadow-[0_0_15px_rgba(59,130,246,0.3)]"
+                    >
+                        New Tournament
+                    </button>
+
 
                     {/* TAB NAVIGATION */}
                     <div className="flex gap-4 md:gap-8 border-b border-white/10 w-full justify-center md:justify-start overflow-x-auto pb-1">
@@ -283,6 +352,19 @@ export default function AdminPage() {
                         >
                             The Race (Live)
                             {activeTab === 'race' && (
+                                <motion.div layoutId="underline" className="absolute bottom-0 left-0 w-full h-[2px] bg-[#fcd34d] shadow-[0_0_10px_#fcd34d]" />
+                            )}
+                        </button>
+
+                        <button
+                            onClick={() => setActiveTab('runes')}
+                            className={`pb-2 md:pb-3 text-sm md:text-lg font-bold tracking-wider transition-all duration-300 relative whitespace-nowrap ${activeTab === 'runes'
+                                ? 'text-[#fcd34d] drop-shadow-[0_0_8px_rgba(252,211,77,0.5)]'
+                                : 'text-white/40 hover:text-white/70'
+                                }`}
+                        >
+                            Rune Forge
+                            {activeTab === 'runes' && (
                                 <motion.div layoutId="underline" className="absolute bottom-0 left-0 w-full h-[2px] bg-[#fcd34d] shadow-[0_0_10px_#fcd34d]" />
                             )}
                         </button>
@@ -431,8 +513,18 @@ export default function AdminPage() {
                                         </div>
                                     </MagicScroll>
                                 </div>
+                                <details className="mt-12 opacity-50 hover:opacity-100 transition-opacity open:opacity-100">
+                                    <summary className="text-[#a8a29e] text-sm uppercase tracking-widest mb-4 border-b border-white/10 pb-2 cursor-pointer select-none">Previous Tournaments</summary>
+                                    <div className="flex flex-wrap gap-2 pt-2">
+                                        {teams.filter(t => t.status === 'archived').map(t => (
+                                            <div key={t.id} className="bg-white/5 px-3 py-1 rounded text-xs text-[#a8a29e] border border-white/10">
+                                                {t.name} ({t.score || 0} pts)
+                                            </div>
+                                        ))}
+                                    </div>
+                                </details>
                             </motion.div>
-                        ) : (
+                        ) : activeTab === 'race' ? (
                             <motion.div
                                 key="race"
                                 initial={{ opacity: 0, x: 20 }}
@@ -441,28 +533,91 @@ export default function AdminPage() {
                                 transition={{ duration: 0.3 }}
                                 className="w-full"
                             >
-                                <LiveLeaderboard teams={teams} currentTime={currentTime} />
+                                <LiveLeaderboard teams={teams} currentTime={currentTime} startTime={tournamentStartTime} />
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="runes"
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                transition={{ duration: 0.3 }}
+                                className="w-full flex flex-col items-center justify-center p-4 md:p-8"
+                            >
+                                <div className="bg-[#2d1b18] p-8 rounded-2xl border-4 border-[#b45309] shadow-[0_0_50px_rgba(180,83,9,0.3)] max-w-2xl w-full text-center relative overflow-hidden">
+                                    {/* Background Texture */}
+                                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/black-scales.png')] opacity-20" />
+
+                                    <h2 className="text-3xl md:text-4xl font-bold text-[#fcd34d] mb-8 font-cinzel relative z-10">Rune Forge</h2>
+
+                                    <div className="flex flex-col md:flex-row gap-6 justify-center mb-8 relative z-10">
+                                        <div className="flex flex-col text-left">
+                                            <label className="text-[#a8a29e] mb-2 text-xs uppercase tracking-widest">Path</label>
+                                            <select
+                                                value={runePath}
+                                                onChange={(e) => setRunePath(e.target.value as any)}
+                                                className="bg-black/40 border border-[#b45309] text-[#fcd34d] p-3 rounded text-lg outline-none focus:border-[#fcd34d] font-cinzel"
+                                            >
+                                                <option value="alpha">Alpha Path</option>
+                                                <option value="beta">Beta Path</option>
+                                                <option value="gamma">Gamma Path</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="flex flex-col text-left">
+                                            <label className="text-[#a8a29e] mb-2 text-xs uppercase tracking-widest">Stage</label>
+                                            <select
+                                                value={runeStage}
+                                                onChange={(e) => setRuneStage(Number(e.target.value))}
+                                                className="bg-black/40 border border-[#b45309] text-[#fcd34d] p-3 rounded text-lg outline-none focus:border-[#fcd34d] font-cinzel"
+                                            >
+                                                {[1, 2, 3, 4, 5].map(nu => (
+                                                    <option key={nu} value={nu}>Stage {nu}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="relative z-10 bg-white p-4 rounded-xl inline-block shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+                                        <img
+                                            src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(JSON.stringify({ path_id: runePath, stage: runeStage }))}`}
+                                            alt="Rune QR"
+                                            className="w-48 h-48 md:w-64 md:h-64"
+                                            loading="lazy"
+                                        />
+                                    </div>
+
+                                    <div className="mt-8 relative z-10">
+                                        <p className="text-[#a8a29e] text-xs uppercase tracking-widest mb-2">Rune Essence (Payload)</p>
+                                        <code className="bg-black/50 p-4 rounded border border-[#b45309]/30 text-[#fcd34d] font-mono text-sm block">
+                                            {JSON.stringify({ path_id: runePath, stage: runeStage }, null, 2)}
+                                        </code>
+                                    </div>
+                                </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
                 </div>
-            </div>
+            </div >
 
             {/* Ambient Particles */}
-            <div className="absolute inset-0 z-0 pointer-events-none">
-                {[...Array(15)].map((_, i) => (
-                    <div
-                        key={i}
-                        className="absolute w-1 h-1 bg-amber-200 rounded-full animate-pulse"
-                        style={{
-                            top: `${Math.random() * 100}%`,
-                            left: `${Math.random() * 100}%`,
-                            animationDuration: `${Math.random() * 3 + 2}s`
-                        }}
-                    />
-                ))}
-            </div>
+            < div className="absolute inset-0 z-0 pointer-events-none" >
+                {
+                    [...Array(15)].map((_, i) => (
+                        <div
+                            key={i}
+                            className="absolute w-1 h-1 bg-amber-200 rounded-full animate-pulse"
+                            style={{
+                                top: `${Math.random() * 100}%`,
+                                left: `${Math.random() * 100}%`,
+                                animationDuration: `${Math.random() * 3 + 2}s`
+                            }}
+                        />
+                    ))
+                }
+            </div >
 
-        </div>
+        </div >
     );
 }
+
