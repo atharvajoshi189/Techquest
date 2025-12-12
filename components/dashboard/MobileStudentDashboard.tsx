@@ -146,7 +146,7 @@ export default function MobileStudentDashboard() {
 
             // Convert Firestore Timestamps to Milliseconds
             const globalStartMs = globalStartTime?.seconds ? globalStartTime.seconds * 1000 : globalStartTime.toDate().getTime();
-            
+
             // Handle case where createdAt might be null (legacy teams) or pending
             let teamJoinMs = 0;
             if (teamJoinedAt) {
@@ -256,21 +256,34 @@ export default function MobileStudentDashboard() {
         <div className={`min-h-screen ${theme.bg} text-white font-cinzel relative pb-24`}>
 
             {/* Top Bar */}
-            <header className="sticky top-0 z-30 bg-black/60 backdrop-blur-md border-b border-white/10 p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full border-2 ${theme.accent} bg-black flex items-center justify-center text-lg`}>
-                        {user.house.charAt(0)}
-                    </div>
-                    <div>
-                        <h2 className="text-sm font-bold tracking-wider">{user.teamName}</h2>
-                        <p className={`text-[10px] ${theme.text} opacity-80`}>{user.house} • Stage {currentStage}</p>
+            {/* Top Bar (Redesigned Vertical Layout) */}
+            <header className="sticky top-0 z-30 bg-black/60 backdrop-blur-md border-b border-white/10 p-4 flex flex-col w-full">
+
+                {/* Row 1: Welcome & Logout */}
+                <div className="flex justify-between items-center w-full mb-1">
+                    <div className="text-gray-400 text-[10px] uppercase tracking-widest leading-tight">
+                        Welcome Champion <br />
+                        <span className="text-white text-sm md:text-base font-bold">{user.teamName}</span>
                     </div>
                 </div>
-                <div className="text-right">
-                    <div className={`font-mono font-bold text-lg ${theme.text} drop-shadow-[0_0_5px_currentColor]`}>
+
+                {/* Row 2: Hero Timer */}
+                <div className="flex justify-center items-center my-2">
+                    <div className={`text-4xl font-mono font-bold ${theme.text} drop-shadow-[0_0_15px_currentColor] tracking-widest`}>
                         {timer}
                     </div>
                 </div>
+
+                {/* Row 3: House & Path Badges */}
+                <div className="flex justify-center gap-3">
+                    <span className={`text-[10px] bg-white/5 px-3 py-1 rounded-full border border-white/10 ${theme.text} uppercase tracking-widest shadow-sm`}>
+                        {user.house}
+                    </span>
+                    <span className="text-[10px] bg-white/5 px-3 py-1 rounded-full border border-white/10 text-purple-300 uppercase tracking-widest shadow-sm">
+                        {user.path} Path
+                    </span>
+                </div>
+
             </header>
 
             {/* Main Content Scroll */}
