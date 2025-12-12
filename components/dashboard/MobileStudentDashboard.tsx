@@ -31,6 +31,14 @@ const MOBILE_THEMES: Record<string, { bg: string; accent: string; text: string }
     'Default': { bg: 'bg-gray-900', accent: 'border-gray-600', text: 'text-gray-200' }
 };
 
+const formatTime = (ms: number) => {
+    if (ms < 0) ms = 0;
+    const seconds = Math.floor((ms / 1000) % 60);
+    const minutes = Math.floor((ms / (1000 * 60)) % 60);
+    const hours = Math.floor((ms / (1000 * 60 * 60)));
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+};
+
 const CLUE_DATA = {
     alpha: {
         1: "I used to zoom on the road, now I stand still and carry your food. Find me where wheels meet meals! ",
@@ -64,6 +72,9 @@ export default function MobileStudentDashboard() {
     const [gameStatus, setGameStatus] = useState('active');
     const [round2Password, setRound2Password] = useState('');
     const [isGameActive, setIsGameActive] = useState(false);
+    const [globalStartTime, setGlobalStartTime] = useState<any>(null);
+    const [teamJoinedAt, setTeamJoinedAt] = useState<number | null>(null);
+    const [timer, setTimer] = useState("00:00:00");
 
     // UI State
     const [isScanning, setIsScanning] = useState(false);
@@ -92,8 +103,15 @@ export default function MobileStudentDashboard() {
         if (!user?.teamId) return;
 
         const unsubConfig = onSnapshot(doc(db, "config", "metadata"), (d) => {
-            if (d.exists()) setIsGameActive(d.data().isStarted);
-            else setIsGameActive(false);
+            if (d.exists()) {
+                const data = d.data();
+                setIsGameActive(data.isStarted);
+                setGlobalStartTime(data.startTime);
+            }
+            else {
+                setIsGameActive(false);
+                setGlobalStartTime(null);
+            }
         });
 
         const unsubTeam = onSnapshot(doc(db, "teams", user.teamId), (d) => {
@@ -102,6 +120,9 @@ export default function MobileStudentDashboard() {
                 setCurrentStage(data.current_stage || 0);
                 setGameStatus(data.status || 'active');
                 setRound2Password(data.round2_password || '');
+                if (data.createdAt || data.startedAt) {
+                    setTeamJoinedAt(data.createdAt || data.startedAt);
+                }
                 // Check if already finished to show modal if refreshing? 
                 // Suggestion: Only show modal on explicit action or if status is newly finished?
                 // For now, let's keep it manual trigger via gatekeeper for the "Wow" effect, unless already finished.
@@ -111,6 +132,46 @@ export default function MobileStudentDashboard() {
 
         return () => { unsubConfig(); unsubTeam(); };
     }, [user?.teamId]);
+
+    // Timer Logic (Late Joiner Fix - Math.max Logic)
+    useEffect(() => {
+        // 1. If tournament not started, force 00:00:00
+        if (!isGameActive || !globalStartTime) {
+            setTimer("00:00:00");
+            return;
+        }
+
+        const interval = setInterval(() => {
+            const now = Date.now();
+
+            // Convert Firestore Timestamps to Milliseconds
+            const globalStartMs = globalStartTime?.seconds ? globalStartTime.seconds * 1000 : globalStartTime.toDate().getTime();
+            
+            // Handle case where createdAt might be null (legacy teams) or pending
+            let teamJoinMs = 0;
+            if (teamJoinedAt) {
+                // @ts-ignore - Handle flexible type (Timestamp or number)
+                teamJoinMs = teamJoinedAt.seconds ? teamJoinedAt.seconds * 1000 : teamJoinedAt;
+            }
+
+            // CORE LOGIC: Take the LATEST time as the effective start
+            // If Global(10:00) vs Team(11:00) -> Use Team(11:00)
+            // This means: If team was already there -> Timer starts from globalStartTime
+            //            If team joins LATE -> Timer starts from THEIR createdAt time
+            const effectiveStartTime = Math.max(globalStartMs, teamJoinMs);
+
+            const diff = now - effectiveStartTime;
+
+            // Prevent negative values (if logic sync lags)
+            if (diff < 0) {
+                setTimer("00:00:00");
+            } else {
+                setTimer(formatTime(diff));
+            }
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [isGameActive, globalStartTime, teamJoinedAt]);
 
     const theme = MOBILE_THEMES[user?.house || 'Default'] || MOBILE_THEMES['Default'];
     const displayStage = currentStage + 1;
@@ -203,6 +264,11 @@ export default function MobileStudentDashboard() {
                     <div>
                         <h2 className="text-sm font-bold tracking-wider">{user.teamName}</h2>
                         <p className={`text-[10px] ${theme.text} opacity-80`}>{user.house} • Stage {currentStage}</p>
+                    </div>
+                </div>
+                <div className="text-right">
+                    <div className={`font-mono font-bold text-lg ${theme.text} drop-shadow-[0_0_5px_currentColor]`}>
+                        {timer}
                     </div>
                 </div>
             </header>

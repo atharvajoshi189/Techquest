@@ -62,6 +62,14 @@ const THEME_CONFIG: Record<string, { bgGradient: string; border: string; glow: s
     }
 };
 
+const formatTime = (ms: number) => {
+    if (ms < 0) ms = 0;
+    const seconds = Math.floor((ms / 1000) % 60);
+    const minutes = Math.floor((ms / (1000 * 60)) % 60);
+    const hours = Math.floor((ms / (1000 * 60 * 60)));
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+};
+
 const CLUE_DATA = {
     alpha: {
         1: "I used to zoom on the road, now I stand still and carry your food. Find me where wheels meet meals! ",
@@ -98,6 +106,9 @@ export default function StudentDashboard() {
     const [gameStatus, setGameStatus] = useState('active');
     const [round2Password, setRound2Password] = useState('');
     const [isGameActive, setIsGameActive] = useState(false);
+    const [globalStartTime, setGlobalStartTime] = useState<any>(null);
+    const [teamJoinedAt, setTeamJoinedAt] = useState<number | null>(null);
+    const [timer, setTimer] = useState("00:00:00");
 
     // UI State
     const [showIntro, setShowIntro] = useState(true);
@@ -132,8 +143,10 @@ export default function StudentDashboard() {
             if (d.exists()) {
                 const data = d.data();
                 setIsGameActive(data.isStarted);
+                setGlobalStartTime(data.startTime);
             } else {
                 setIsGameActive(false);
+                setGlobalStartTime(null);
             }
         });
 
@@ -144,11 +157,57 @@ export default function StudentDashboard() {
                 setCurrentStage(data.current_stage || 0);
                 setGameStatus(data.status || 'active');
                 setRound2Password(data.round2_password || '');
+                // Ensure retrieval of startedAt/createdAt.
+                // Priority: Use createdAt (ServerTimestamp) if available, else startedAt (Legacy Number)
+                const joinTime = data.createdAt || data.startedAt;
+                if (joinTime) {
+                    setTeamJoinedAt(joinTime);
+                }
             }
         });
 
         return () => { unsubConfig(); unsubTeam(); };
     }, [user?.teamId]);
+
+    // 3. Timer Logic (Late Joiner Fix - Math.max Logic)
+    useEffect(() => {
+        // 1. If tournament not started, force 00:00:00
+        if (!isGameActive || !globalStartTime) {
+            setTimer("00:00:00");
+            return;
+        }
+
+        const interval = setInterval(() => {
+            const now = Date.now();
+
+            // Convert Firestore Timestamps to Milliseconds
+            const globalStartMs = globalStartTime?.seconds ? globalStartTime.seconds * 1000 : globalStartTime.toDate().getTime();
+            
+            // Handle case where createdAt might be null (legacy teams) or pending
+            let teamJoinMs = 0;
+            if (teamJoinedAt) {
+                // @ts-ignore - Handle flexible type (Timestamp or number)
+                teamJoinMs = teamJoinedAt.seconds ? teamJoinedAt.seconds * 1000 : teamJoinedAt;
+            }
+
+            // CORE LOGIC: Take the LATEST time as the effective start
+            // If Global(10:00) vs Team(11:00) -> Use Team(11:00)
+            // This means: If team was already there -> Timer starts from globalStartTime
+            //            If team joins LATE -> Timer starts from THEIR createdAt time
+            const effectiveStartTime = Math.max(globalStartMs, teamJoinMs);
+
+            const diff = now - effectiveStartTime;
+
+            // Prevent negative values (if logic sync lags)
+            if (diff < 0) {
+                setTimer("00:00:00");
+            } else {
+                setTimer(formatTime(diff));
+            }
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [isGameActive, globalStartTime, teamJoinedAt]);
 
     // 3. Derived State
     const theme = THEME_CONFIG[user?.house || 'Default'] || THEME_CONFIG['Default'];
@@ -310,8 +369,19 @@ export default function StudentDashboard() {
                                 {user.house}
                             </div>
                             <div className="text-[10px] md:text-xs mt-1 text-white/50">{user.path.toUpperCase()} PATH</div>
+                            <div className="text-[10px] md:text-xs mt-1 text-white/50">{user.path.toUpperCase()} PATH</div>
                         </div>
                     </div>
+
+                    {/* TIMER DISPLAY */}
+                    {isGameActive && (
+                        <div className="absolute top-6 right-6 md:top-10 md:right-10 hidden md:block">
+                            <div className={`text-2xl md:text-4xl font-mono font-bold ${theme.accent} drop-shadow-[0_0_10px_currentColor]`}>
+                                {timer}
+                            </div>
+                            <div className="text-[10px] text-right opacity-50 uppercase tracking-widest">Mission Time</div>
+                        </div>
+                    )}
 
                     {/* Game Status or content */}
                     {!isGameActive ? (
@@ -388,7 +458,9 @@ export default function StudentDashboard() {
                     >
                         {/* Close Button Top Right */}
                         <button
+                            type="button"
                             onClick={() => setIsScanning(false)}
+                            aria-label="Close scanner"
                             className="absolute top-8 right-8 text-white/80 hover:text-white transition-colors p-2"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 md:h-10 md:w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">

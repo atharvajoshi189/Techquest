@@ -33,7 +33,7 @@ interface Team {
     startedAt?: number;
     finishedAt?: { seconds: number };
     round2_password?: string;
-    path?: 'alpha' | 'beta' | 'gamma';
+    path?: 'alpha' | 'beta' | 'gamma' | 'delta' | 'charlie';
     score?: number;
 }
 
@@ -71,7 +71,7 @@ export default function AdminPage() {
     const [currentTime, setCurrentTime] = useState(Date.now());
     const [tournamentStartTime, setTournamentStartTime] = useState<number | null>(null);
     const [activeTournamentId, setActiveTournamentId] = useState<string | null>(null);
-    const [runePath, setRunePath] = useState<'alpha' | 'beta' | 'gamma'>('alpha');
+    const [runePath, setRunePath] = useState<'alpha' | 'beta' | 'gamma' | 'delta' | 'charlie'>('alpha');
     const [runeStage, setRuneStage] = useState(1);
 
     // --- Authentication State ---
@@ -150,7 +150,7 @@ export default function AdminPage() {
             await setDoc(doc(db, "config", "metadata"), {
                 activeTournamentId: newTourneyId,
                 isStarted: false,
-                startTime: null
+                startTime: null // Explicitly wipe start time
             });
             alert(`New Session Started: ${newTourneyId}`);
         } catch (err) {
@@ -184,7 +184,7 @@ export default function AdminPage() {
             const houseIndex = Math.floor(Math.random() * HOUSES.length);
             const assignedHouse = HOUSES[houseIndex];
 
-            const PATHS: ('alpha' | 'beta' | 'gamma')[] = ['alpha', 'beta', 'gamma'];
+            const PATHS: ('alpha' | 'beta' | 'gamma' | 'delta' | 'charlie')[] = ['alpha', 'beta', 'gamma', 'delta', 'charlie'];
             const pathIndex = Math.floor(Math.random() * PATHS.length);
             const assignedPath = PATHS[pathIndex];
 
@@ -203,6 +203,7 @@ export default function AdminPage() {
                 house: assignedHouse,
                 path: assignedPath,
                 startedAt: now,
+                createdAt: serverTimestamp(), // Added for accurate Late Joiner Logic
                 score: 0,
                 last_updated: serverTimestamp(),
                 tournamentId: activeTournamentId // Session Link
@@ -533,7 +534,7 @@ export default function AdminPage() {
                                 transition={{ duration: 0.3 }}
                                 className="w-full"
                             >
-                                <LiveLeaderboard teams={teams} currentTime={currentTime} startTime={tournamentStartTime} />
+                                <LiveLeaderboard teams={teams} />
                             </motion.div>
                         ) : (
                             <motion.div
@@ -561,6 +562,8 @@ export default function AdminPage() {
                                                 <option value="alpha">Alpha Path</option>
                                                 <option value="beta">Beta Path</option>
                                                 <option value="gamma">Gamma Path</option>
+                                                <option value="delta">Delta Path</option>
+                                                <option value="charlie">Charlie Path</option>
                                             </select>
                                         </div>
 
