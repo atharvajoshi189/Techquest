@@ -14,7 +14,8 @@ import {
     setDoc,
     writeBatch,
     where,
-    updateDoc
+    updateDoc,
+    getDocs // Added for Smart Allocation
 } from "firebase/firestore";
 import { MagicScroll } from '@/components/admin/MagicScroll';
 import { LiveLeaderboard } from '@/components/admin/LiveLeaderboard';
@@ -179,16 +180,41 @@ export default function AdminPage() {
                 return;
             }
 
-            // 2. The Sorting Hat (Correct Random Logic)
+            // 2. The Sorting Hat (Smart Balanced Allocation)
             const HOUSES = ['Gryffindor', 'Slytherin', 'Ravenclaw', 'Hufflepuff'];
             const houseIndex = Math.floor(Math.random() * HOUSES.length);
             const assignedHouse = HOUSES[houseIndex];
 
-            const PATHS: ('alpha' | 'beta' | 'gamma' | 'delta' | 'charlie')[] = ['alpha', 'beta', 'gamma', 'delta', 'charlie'];
-            const pathIndex = Math.floor(Math.random() * PATHS.length);
-            const assignedPath = PATHS[pathIndex];
+            // --- SMART PATH ALLOCATION (Least Used Strategy) ---
+            const ALL_PATHS: ('alpha' | 'beta' | 'gamma' | 'delta' | 'charlie')[] = ['alpha', 'beta', 'gamma', 'delta', 'charlie'];
 
-            console.log("Allocation Roll -> House:", assignedHouse, "Path:", assignedPath);
+            // A. Fetch existing teams in this tournament
+            const q = query(collection(db, 'teams'), where('tournamentId', '==', activeTournamentId));
+            const snapshot = await getDocs(q);
+            const existingTeams = snapshot.docs.map(doc => doc.data() as Team);
+
+            // B. Count usage
+            const counts: Record<string, number> = { alpha: 0, beta: 0, gamma: 0, delta: 0, charlie: 0 };
+            existingTeams.forEach(t => {
+                if (t.path && counts[t.path] !== undefined) {
+                    counts[t.path]++;
+                }
+            });
+
+            console.log("Current Path Distribution:", counts);
+
+            // C. Find Minimum
+            const minCount = Math.min(...Object.values(counts));
+
+            // D. Candidates
+            const leastUsedPaths = ALL_PATHS.filter(p => counts[p] === minCount);
+
+            // E. Pick One
+            const randomPathIndex = Math.floor(Math.random() * leastUsedPaths.length);
+            const assignedPath = leastUsedPaths[randomPathIndex];
+
+            console.log(`Allocation Roll -> House: ${assignedHouse}, Path: ${assignedPath} (Balanced from candidates: ${leastUsedPaths.join(', ')})`);
+
 
             const now = Date.now();
 
@@ -494,6 +520,9 @@ export default function AdminPage() {
                                                                     <h4 className="font-bold text-[#3e2723] text-sm md:text-lg">{team.name}</h4>
                                                                     <p className="text-[10px] md:text-xs text-[#5d4037] font-sans uppercase tracking-wide">
                                                                         {team.leader} • <span style={{ color: HOUSE_COLORS[team.house] }} className="font-bold">{team.house}</span>
+                                                                        <span className="ml-2 text-[10px] md:text-xs font-bold text-yellow-500/80 tracking-widest">
+                                                                            • PATH: {team.path?.toUpperCase() || 'N/A'}
+                                                                        </span>
                                                                     </p>
                                                                 </div>
                                                             </div>
