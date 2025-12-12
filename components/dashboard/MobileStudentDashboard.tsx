@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import { db } from '../../app/firebase';
-import { doc, onSnapshot, updateDoc, serverTimestamp, increment } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, serverTimestamp, increment, runTransaction } from 'firebase/firestore';
 import { QuestJournal } from '@/components/dashboard/QuestJournal';
 
 // --- Types (Reused) ---
@@ -60,6 +60,20 @@ const CLUE_DATA = {
         3: "A stage with screen where we showcase your talent/n find where I am!",
         4: "I am marked with lines but not a notebook I hold two nets yet catch no fish./n Seek me where whistle rule the air , here clue awaits where players dare!",
         5: "I give shadow in the sun and place to sit and to cheer like audience and have fun! "
+    } as Record<number, string>,
+    delta: {
+        1: " He knows every face, he knows every name,He guards your path each day the same.Where journeys begin and strangers wait,Your next clue rests with the man at the gate.",
+        2: "Where codes begin and concepts load,A board displays the club you chose.Events and achievements proudly stand—Your next clue waits on this zenith land.",
+        3: "Inside, Ashwa Riders shape with might;Outside, calm replaces light.Seek the seat that sways with grace—Your hidden clue is in that place.",
+        4: "Where silence rules and pages glide,Your next clue waits where readers hide.",
+        5: "Where IT minds guide every day,Their staff room stands along the way.But don’t step in—stay just outside,There your next hidden clues reside."
+    } as Record<number, string>,
+    charlie: {
+        1: "Where guiding hearts quietly stay, The home of our fathers leads the way. Not inside—your clue is just outside— Seek the spot where wisdom seems to reside.",
+        2: "Between Block A and Block B lies a lawn of green, Guarded by a board that keeps it clean. No footsteps allowed on this quiet ground— Your next clue waits just at its boundary found.",
+        3: "Where Civil minds plan stone and steel, Their staff room holds ideas real. But your clue is not inside that door— It waits just outside, on the corridor floor.",
+        4: "Where engines rest and duties start, Faculty park with careful art. Not inside the cars you’ll roam— Your next clue waits where they call home.",
+        5: "Where numbers rule and records stay, The Accounts Section leads the way. Not inside, but near this place— Your next clue waits in silent grace."
     } as Record<number, string>,
 };
 
@@ -174,64 +188,107 @@ export default function MobileStudentDashboard() {
     }, [isGameActive, globalStartTime, teamJoinedAt]);
 
     const theme = MOBILE_THEMES[user?.house || 'Default'] || MOBILE_THEMES['Default'];
-    const displayStage = currentStage + 1;
-    const currentClue = user?.path ? (CLUE_DATA[user.path][displayStage] || "Wait for the next instruction...") : "Loading...";
+    // Normalize Stage: If 0 (Legacy/Not Started), treat as 1 (Start).
+    const logicalStage = currentStage && currentStage > 0 ? currentStage : 1;
+    const displayStage = logicalStage;
+    const currentClue = (user?.path && CLUE_DATA[user.path]) ? (CLUE_DATA[user.path][displayStage] || "Wait for the next instruction...") : "Loading...";
 
     const getRevealedPassword = () => {
         if (!round2Password) return "????????".split('');
-        const revealCount = Math.min(currentStage * 2, 8);
+        const completedStages = Math.max(logicalStage - 1, 0);
+        const revealCount = Math.min(completedStages * 2, 8);
         return round2Password.substring(0, revealCount).padEnd(8, '_').split('');
     };
 
     // --- HANDLERS ---
+    // --- HANDLERS ---
+    // --- HANDLERS ---
+    const isProcessing = React.useRef(false);
+
     const handleScan = async (rawValue: string) => {
-        if (!rawValue || !user || !isGameActive) return;
+        // 0. PREVENT DOUBLE SCANS
+        if (!rawValue || !user || !isGameActive || isProcessing.current) return;
 
         try {
-            let payload: QRPayload;
-            try {
-                payload = JSON.parse(rawValue);
-            } catch {
-                setScanFeedback({ type: 'error', msg: 'Invalid Rune!' });
+            // 1. PARSE DATA STRICTLY
+            const parsedData = JSON.parse(rawValue);
+            // Ensure types are correct
+            const scannedStage = Number(parsedData.stage);
+            const scannedPath = parsedData.path_id?.toLowerCase();
+            const userPath = user.path?.toLowerCase();
+
+            // Assume currentStage (live state) is the stage they are LOOKING FOR (Target).
+            // Normalize: If 0, they are looking for Stage 1.
+            const currentTargetStage = Number(logicalStage);
+
+            // 2. PATH CHECK (Strict)
+            if (scannedPath && scannedPath !== userPath) {
+                setScanFeedback({ type: 'error', msg: `Wrong Path! You are ${userPath?.toUpperCase()}.` });
+                // Optional: Penalty
+                // updateDoc(doc(db, "teams", user.teamId), { score: increment(-10) });
                 return;
             }
 
-            if (payload.path_id !== user.path) {
-                setScanFeedback({ type: 'error', msg: 'Wrong Path!' });
-                if (currentStage > 0) {
-                    updateDoc(doc(db, "teams", user.teamId), { score: increment(-10) });
+            // 3. SEQUENCE CHECK ("Lock & Key")
+            // Strict Equality: The scanned stage MUST match the current target stage.
+            if (scannedStage !== currentTargetStage) {
+                if (scannedStage < currentTargetStage) {
+                    setScanFeedback({ type: 'error', msg: `Already Completed Stage ${scannedStage}!` });
+                } else {
+                    setScanFeedback({ type: 'error', msg: `Sequence Break! Find Stage ${currentTargetStage} first.` });
                 }
                 return;
             }
 
-            // STRICT SEQUENCE ENFORCEMENT
-            if (payload.stage !== currentStage) {
-                setScanFeedback({
-                    type: 'error',
-                    msg: `Wrong Sequence! You are on Stage ${currentStage}, but scanned Stage ${payload.stage}.`
-                });
-                // Optional: Keep penalty, or remove if user implies "stop immediately" without penalty. 
-                // Maintaining penalty for consistency with "Wrong Clue" behavior, but blocking execution.
-                if (currentStage > 0) {
-                    updateDoc(doc(db, "teams", user.teamId), { score: increment(-10) });
-                }
-                return;
-            }
+            // SAFETY: Prevent overflow
+            if (currentTargetStage > 5) return;
 
-            setScanFeedback({ type: 'success', msg: 'Rune Deciphered!' });
+            // 4. SUCCESS -> LOCK & UPDATE
+            isProcessing.current = true; // Lock immediately
+            setScanFeedback({ type: 'success', msg: 'Correct Rune! Decrypting...' });
 
             setTimeout(async () => {
-                setIsScanning(false);
                 const teamRef = doc(db, "teams", user.teamId);
-                await updateDoc(teamRef, {
-                    current_stage: increment(1),
-                    score: increment(20),
-                    last_updated: serverTimestamp()
-                });
-            }, 1000);
+
+                try {
+                    await runTransaction(db, async (transaction) => {
+                        const snap = await transaction.get(teamRef);
+                        if (!snap.exists()) throw new Error("TEAM_MISSING");
+
+                        const data = snap.data() as any;
+                        const dbStageRaw = data?.current_stage ?? 1;
+                        const dbStage = dbStageRaw > 0 ? dbStageRaw : 1;
+
+                        if (dbStage !== currentTargetStage) {
+                            throw new Error("STAGE_MISMATCH");
+                        }
+
+                        transaction.update(teamRef, {
+                            current_stage: dbStage + 1,
+                            score: (data?.score || 0) + 20,
+                            last_updated: serverTimestamp()
+                        });
+                    });
+                } catch (updateErr) {
+                    console.error("Firestore Update Failed:", updateErr);
+                    if ((updateErr as Error).message === "STAGE_MISMATCH") {
+                        setScanFeedback({ type: 'error', msg: 'Syncing... try again.' });
+                    } else {
+                        setScanFeedback({ type: 'error', msg: 'System Error: Save Failed' });
+                    }
+                } finally {
+                    // Release lock after safe delay
+                    setTimeout(() => {
+                        isProcessing.current = false;
+                        setIsScanning(false);
+                    }, 1500);
+                }
+            }, 800);
 
         } catch (err) {
-            setScanFeedback({ type: 'error', msg: 'Scan Failed' });
+            console.error("Scan Error", err);
+            setScanFeedback({ type: 'error', msg: 'Invalid Rune Data' });
+            isProcessing.current = false;
         }
     };
 
@@ -405,6 +462,7 @@ export default function MobileStudentDashboard() {
                                     onScan={(res) => {
                                         if (res && res.length > 0) handleScan(res[0].rawValue);
                                     }}
+                                    scanDelay={2000}
                                 // paused={scanFeedback.type === 'success'} // Optional optimization
                                 />
                                 <motion.div

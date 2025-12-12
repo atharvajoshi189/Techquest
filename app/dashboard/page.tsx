@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { IntroVideo } from '@/components/IntroVideo';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import { db } from '../firebase';
-import { doc, onSnapshot, updateDoc, serverTimestamp, increment } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, serverTimestamp, increment, runTransaction } from 'firebase/firestore';
 import { QuestJournal } from '@/components/dashboard/QuestJournal';
 import { InventoryPouch } from '@/components/dashboard/InventoryPouch';
 import useIsMobile from '@/hooks/useIsMobile';
@@ -91,6 +91,20 @@ const CLUE_DATA = {
         3: "A stage with screen where we showcase your talent/n find where I am!",
         4: "I am marked with lines but not a notebook I hold two nets yet catch no fish./n Seek me where whistle rule the air , here clue awaits where players dare!",
         5: "I give shadow in the sun and place to sit and to cheer like audience and have fun! "
+    } as Record<number, string>,
+    delta: {
+        1: " He knows every face, he knows every name,He guards your path each day the same.Where journeys begin and strangers wait,Your next clue rests with the man at the gate.",
+        2: "Where codes begin and concepts load,A board displays the club you chose.Events and achievements proudly stand—Your next clue waits on this zenith land.",
+        3: "Inside, Ashwa Riders shape with might;Outside, calm replaces light.Seek the seat that sways with grace—Your hidden clue is in that place.",
+        4: "Where silence rules and pages glide,Your next clue waits where readers hide.",
+        5: "Where IT minds guide every day,Their staff room stands along the way.But don’t step in—stay just outside,There your next hidden clues reside."
+    } as Record<number, string>,
+    charlie: {
+        1: "Where guiding hearts quietly stay, The home of our fathers leads the way. Not inside—your clue is just outside— Seek the spot where wisdom seems to reside.",
+        2: "Between Block A and Block B lies a lawn of green, Guarded by a board that keeps it clean. No footsteps allowed on this quiet ground— Your next clue waits just at its boundary found.",
+        3: "Where Civil minds plan stone and steel, Their staff room holds ideas real. But your clue is not inside that door— It waits just outside, on the corridor floor.",
+        4: "Where engines rest and duties start, Faculty park with careful art. Not inside the cars you’ll roam— Your next clue waits where they call home.",
+        5: "Where numbers rule and records stay, The Accounts Section leads the way. Not inside, but near this place— Your next clue waits in silent grace."
     } as Record<number, string>,
 };
 
@@ -182,7 +196,7 @@ export default function StudentDashboard() {
 
             // Convert Firestore Timestamps to Milliseconds
             const globalStartMs = globalStartTime?.seconds ? globalStartTime.seconds * 1000 : globalStartTime.toDate().getTime();
-            
+
             // Handle case where createdAt might be null (legacy teams) or pending
             let teamJoinMs = 0;
             if (teamJoinedAt) {
@@ -213,12 +227,10 @@ export default function StudentDashboard() {
     const theme = THEME_CONFIG[user?.house || 'Default'] || THEME_CONFIG['Default'];
 
     // Get Clue based on Path & Stage
-    // Note: Clue 1 corresponds to Stage 0 initially or Stage 1? 
-    // Usually Stage 0 means "Not Started", so imply "Go to Location 1".
-    // If currentStage is 0, we show clue for 1. If 1, show clue for 2? 
-    // Let's assume current_stage means "Completed Stages". So Stage 0 means working on Clue 1.
-    const displayStage = currentStage + 1;
-    const currentClue = user?.path
+    // Normalize Stage: If 0 (Legacy/Not Started), treat as 1 (Start).
+    const logicalStage = currentStage && currentStage > 0 ? currentStage : 1;
+    const displayStage = logicalStage;
+    const currentClue = (user?.path && CLUE_DATA[user.path])
         ? (CLUE_DATA[user.path][displayStage] || "Wait for the next instruction...")
         : "Loading Destiny...";
 
@@ -226,16 +238,20 @@ export default function StudentDashboard() {
     const getRevealedPassword = () => {
         if (!round2Password) return "????????";
         // Reveal 2 chars per stage completed
-        // Stage 0 -> 0 chars
         // Stage 1 -> 2 chars
         // Stage 2 -> 4 chars...
-        const revealCount = Math.min(currentStage * 2, 8);
+        // Reveal 2 chars per completed stage (nothing at stage 1 until first scan)
+        const completedStages = Math.max(logicalStage - 1, 0);
+        const revealCount = Math.min(completedStages * 2, 8);
         return round2Password.substring(0, revealCount).padEnd(8, '_').split('').join(' ');
     };
 
     // Handlers
+    // Handlers
+    const isProcessing = React.useRef(false);
+
     const handleScan = async (rawValue: string) => {
-        if (!rawValue || !user || !isGameActive) return;
+        if (!rawValue || !user || !isGameActive || isProcessing.current) return;
 
         try {
             // 1. Attempts to Parse JSON (Strict Requirement)
@@ -248,63 +264,89 @@ export default function StudentDashboard() {
                 return;
             }
 
-            // 2. CHECK PATH (Must match User's Path)
-            // e.g. "alpha" vs "alpha"
-            if (payload.path_id !== user.path) {
-                setScanFeedback({ type: 'error', msg: `Wrong Path! This rune belongs to ${payload.path_id}.` });
+            const scannedPath = payload.path_id?.toLowerCase();
+            const userPath = user.path?.toLowerCase();
+            const scannedStage = Number(payload.stage);
+
+            // Normalize Target: If 0, looking for 1.
+            const currentTargetStage = Number(logicalStage);
+
+
+            // 2. CHECK PATH (Strict)
+            if (scannedPath && scannedPath !== userPath) {
+                setScanFeedback({ type: 'error', msg: `Wrong Path! You are ${userPath?.toUpperCase()}.` });
                 // Deduct points for wrong scan
-                const isSafe = currentStage === 0; // First stage safety
-                if (!isSafe) {
-                    updateDoc(doc(db, "teams", user.teamId), {
-                        score: increment(-10)
-                    }).catch(e => console.error(e));
+                if (user.currentStage > 0) {
+                    updateDoc(doc(db, "teams", user.teamId), { score: increment(-10) }).catch(console.error);
                 }
                 return;
             }
 
-            // 3. CHECK STAGE (Must be the NEXT stage)
-            // User currentStage is "Completed Stages" (e.g. 0).
-            // We are looking for Stage 1.
-            const targetStage = currentStage + 1;
-
-            // Allow re-scanning the current stage ?? No, strictly next.
-            // But if user scans Stage 1 when they are at 0, it matches.
-            if (payload.stage !== targetStage) {
-                setScanFeedback({ type: 'error', msg: `Wrong Clue! You are looking for Stage ${targetStage}, found ${payload.stage}.` });
-                // Deduct points for wrong scan
-                const isSafe = currentStage === 0; // First stage safety
-                if (!isSafe) {
-                    updateDoc(doc(db, "teams", user.teamId), {
-                        score: increment(-10)
-                    }).catch(e => console.error(e));
+            // 3. CHECK SEQUENCE (Lock & Key)
+            if (scannedStage !== currentTargetStage) {
+                if (scannedStage < currentTargetStage) {
+                    setScanFeedback({ type: 'error', msg: `Already Completed Stage ${scannedStage}!` });
+                } else {
+                    setScanFeedback({ type: 'error', msg: `Sequence Break! Find Stage ${currentTargetStage} first.` });
+                }
+                // Penalty
+                if (user.currentStage > 0) {
+                    updateDoc(doc(db, "teams", user.teamId), { score: increment(-10) }).catch(console.error);
                 }
                 return;
             }
+
+            // SAFETY
+            if (currentTargetStage > 5) return;
 
             // --- SUCCESS ---
+            isProcessing.current = true; // Lock immediately
             setScanFeedback({ type: 'success', msg: 'Rune Deciphered! Accessing Memory...' });
 
             // Wait a moment for the user to see success
             setTimeout(async () => {
-                setIsScanning(false);
+                // Update Firestore with transactional lock to prevent multi-skip
+                const teamRef = doc(db, "teams", user.teamId);
 
-                // Update Firestore
                 try {
-                    const teamRef = doc(db, "teams", user.teamId);
-                    await updateDoc(teamRef, {
-                        current_stage: increment(1),
-                        score: increment(20),
-                        last_updated: serverTimestamp()
+                    await runTransaction(db, async (transaction) => {
+                        const snap = await transaction.get(teamRef);
+                        if (!snap.exists()) throw new Error("TEAM_MISSING");
+
+                        const data = snap.data() as any;
+                        const dbStageRaw = data?.current_stage ?? 1;
+                        const dbStage = dbStageRaw > 0 ? dbStageRaw : 1;
+
+                        // If DB is ahead/behind our expected, abort to avoid skips
+                        if (dbStage !== currentTargetStage) {
+                            throw new Error("STAGE_MISMATCH");
+                        }
+
+                        transaction.update(teamRef, {
+                            current_stage: dbStage + 1,
+                            score: (data?.score || 0) + 20,
+                            last_updated: serverTimestamp()
+                        });
                     });
                 } catch (updateErr) {
                     console.error("Firestore Update Failed", updateErr);
-                    alert("Network Error: Could not save progress.");
+                    if ((updateErr as Error).message === "STAGE_MISMATCH") {
+                        setScanFeedback({ type: 'error', msg: 'Syncing... try again.' });
+                    } else {
+                        setScanFeedback({ type: 'error', msg: 'Save Failed!' });
+                    }
+                } finally {
+                    setTimeout(() => {
+                        isProcessing.current = false;
+                        setIsScanning(false);
+                    }, 1500);
                 }
-            }, 1500);
+            }, 800);
 
         } catch (err) {
             console.error("Scan Error", err);
             setScanFeedback({ type: 'error', msg: 'The Lens is clouded... Try again.' });
+            isProcessing.current = false;
         }
     };
 
@@ -356,32 +398,45 @@ export default function StudentDashboard() {
                     className="relative z-10 p-4 md:p-8 max-w-5xl mx-auto flex flex-col gap-4 md:gap-6 pb-20 md:pb-8"
                 >
 
-                    {/* Header Card */}
-                    <div className={`p-4 md:p-6 rounded-2xl backdrop-blur-md bg-black/40 border-2 ${theme.border} ${theme.glow} flex justify-between items-center`}>
-                        <div>
-                            <h2 className="text-[10px] md:text-xs uppercase tracking-widest opacity-70">Welcome Champion</h2>
-                            <h1 className={`text-xl md:text-4xl font-bold ${theme.accent} drop-shadow-md`}>
-                                {user.teamName}
-                            </h1>
-                        </div>
-                        <div className="text-right">
-                            <div className={`inline-block px-2 py-1 md:px-3 rounded-full border ${theme.border} bg-black/50 text-[10px] md:text-xs font-bold uppercase tracking-widest`}>
-                                {user.house}
-                            </div>
-                            <div className="text-[10px] md:text-xs mt-1 text-white/50">{user.path.toUpperCase()} PATH</div>
-                            <div className="text-[10px] md:text-xs mt-1 text-white/50">{user.path.toUpperCase()} PATH</div>
-                        </div>
-                    </div>
+                    {/* HEADER START (3-Column Grid) */}
+                    <div className={`fixed top-0 left-0 w-full h-24 z-50 bg-black/60 backdrop-blur-xl border-b border-white/10 grid grid-cols-3 px-8 items-center shadow-2xl transition-all duration-300`}>
 
-                    {/* TIMER DISPLAY */}
-                    {isGameActive && (
-                        <div className="absolute top-6 right-6 md:top-10 md:right-10 hidden md:block">
-                            <div className={`text-2xl md:text-4xl font-mono font-bold ${theme.accent} drop-shadow-[0_0_10px_currentColor]`}>
+                        {/* 1. LEFT: Identity */}
+                        <div className="flex flex-col items-start">
+                            <span className="text-xs text-cyan-400 tracking-[0.2em] uppercase mb-1">Welcome Champion</span>
+                            <h1 className="text-2xl font-bold text-white tracking-wider drop-shadow-md">{user.teamName}</h1>
+                        </div>
+
+                        {/* 2. CENTER: The Master Clock */}
+                        <div className="flex flex-col items-center justify-center">
+                            <span className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Mission Timer</span>
+                            <div className="text-5xl font-mono font-bold text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.6)]">
                                 {timer}
                             </div>
-                            <div className="text-[10px] text-right opacity-50 uppercase tracking-widest">Mission Time</div>
                         </div>
-                    )}
+
+                        {/* 3. RIGHT: Status */}
+                        <div className="flex flex-col items-end gap-2">
+                            {/* House Badge */}
+                            <div className="px-4 py-1 rounded-full bg-white/10 border border-white/20 backdrop-blur-md">
+                                <span className="text-sm font-bold text-white tracking-widest uppercase">
+                                    {user.house}
+                                </span>
+                            </div>
+
+                            {/* Path Badge */}
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-400 uppercase">Path Assigned:</span>
+                                <span className="text-xs font-bold text-cyan-300 uppercase tracking-widest">
+                                    {user.path}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    {/* HEADER END */}
+
+                    {/* SPACER for Fixed Header */}
+                    <div className="h-24 w-full" />
 
                     {/* Game Status or content */}
                     {!isGameActive ? (
@@ -394,7 +449,7 @@ export default function StudentDashboard() {
                             <h1 className="text-3xl md:text-5xl font-bold text-yellow-400">VICTORY</h1>
                             <p className="text-base md:text-xl">You have completed the Triwizard Quest.</p>
                         </div>
-                    ) : currentStage >= 5 ? (
+                    ) : logicalStage > 5 ? (
                         // GATEKEEPER MODE
                         <div className={`p-4 md:p-8 rounded-2xl bg-black/60 border-2 ${theme.border} ${theme.glow} text-center space-y-6`}>
                             <h2 className="text-2xl md:text-3xl text-red-500 tracking-[0.2em] font-bold">THE FINAL PORTAL</h2>
@@ -478,6 +533,7 @@ export default function StudentDashboard() {
                                         handleScan(res[0].rawValue);
                                     }
                                 }}
+                                scanDelay={2000}
                                 paused={scanFeedback.type === 'success'}
                             />
 

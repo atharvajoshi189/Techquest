@@ -41,7 +41,7 @@ export function QuestJournal({ clue, stage, house }: QuestJournalProps) {
                     {/* Content */}
                     <div className="relative z-10 w-full text-center">
                         <h3 className={`font-cinzel font-bold text-xl uppercase tracking-widest border-b-2 ${accent.split(' ')[0]} pb-2 mb-4 inline-block`}>
-                            Quest Log: Stage {stage + 1}
+                            Quest Log: Stage {stage}
                         </h3>
 
                         <div className="font-hand text-2xl md:text-3xl leading-relaxed text-[#3e2723] py-8">

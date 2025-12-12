@@ -180,12 +180,8 @@ export default function AdminPage() {
                 return;
             }
 
-            // 2. The Sorting Hat (Smart Balanced Allocation)
+            // 2. The Sorting Hat (Smart Balanced Allocation - Equal Distribution)
             const HOUSES = ['Gryffindor', 'Slytherin', 'Ravenclaw', 'Hufflepuff'];
-            const houseIndex = Math.floor(Math.random() * HOUSES.length);
-            const assignedHouse = HOUSES[houseIndex];
-
-            // --- SMART PATH ALLOCATION (Least Used Strategy) ---
             const ALL_PATHS: ('alpha' | 'beta' | 'gamma' | 'delta' | 'charlie')[] = ['alpha', 'beta', 'gamma', 'delta', 'charlie'];
 
             // A. Fetch existing teams in this tournament
@@ -193,27 +189,46 @@ export default function AdminPage() {
             const snapshot = await getDocs(q);
             const existingTeams = snapshot.docs.map(doc => doc.data() as Team);
 
-            // B. Count usage
-            const counts: Record<string, number> = { alpha: 0, beta: 0, gamma: 0, delta: 0, charlie: 0 };
+            // B. Count House Usage (Balanced Distribution)
+            const houseCounts: Record<string, number> = { Gryffindor: 0, Slytherin: 0, Ravenclaw: 0, Hufflepuff: 0 };
             existingTeams.forEach(t => {
-                if (t.path && counts[t.path] !== undefined) {
-                    counts[t.path]++;
+                if (t.house && houseCounts[t.house] !== undefined) {
+                    houseCounts[t.house]++;
                 }
             });
 
-            console.log("Current Path Distribution:", counts);
+            // C. Find Minimum House Count
+            const minHouseCount = Math.min(...Object.values(houseCounts));
 
-            // C. Find Minimum
-            const minCount = Math.min(...Object.values(counts));
+            // D. Get Least Used Houses (for balanced distribution)
+            const leastUsedHouses = HOUSES.filter(h => houseCounts[h] === minHouseCount);
 
-            // D. Candidates
-            const leastUsedPaths = ALL_PATHS.filter(p => counts[p] === minCount);
+            // E. Pick Randomly from Least Used Houses
+            const randomHouseIndex = Math.floor(Math.random() * leastUsedHouses.length);
+            const assignedHouse = leastUsedHouses[randomHouseIndex];
 
-            // E. Pick One
+            // F. Count Path Usage (Balanced Distribution)
+            const pathCounts: Record<string, number> = { alpha: 0, beta: 0, gamma: 0, delta: 0, charlie: 0 };
+            existingTeams.forEach(t => {
+                if (t.path && pathCounts[t.path] !== undefined) {
+                    pathCounts[t.path]++;
+                }
+            });
+
+            console.log("Current House Distribution:", houseCounts);
+            console.log("Current Path Distribution:", pathCounts);
+
+            // G. Find Minimum Path Count
+            const minPathCount = Math.min(...Object.values(pathCounts));
+
+            // H. Get Least Used Paths
+            const leastUsedPaths = ALL_PATHS.filter(p => pathCounts[p] === minPathCount);
+
+            // I. Pick Randomly from Least Used Paths
             const randomPathIndex = Math.floor(Math.random() * leastUsedPaths.length);
             const assignedPath = leastUsedPaths[randomPathIndex];
 
-            console.log(`Allocation Roll -> House: ${assignedHouse}, Path: ${assignedPath} (Balanced from candidates: ${leastUsedPaths.join(', ')})`);
+            console.log(`Allocation Roll -> House: ${assignedHouse} (from ${leastUsedHouses.join(', ')}), Path: ${assignedPath} (from ${leastUsedPaths.join(', ')})`);
 
 
             const now = Date.now();
@@ -224,7 +239,7 @@ export default function AdminPage() {
                 leader: newTeam.leader,
                 passcode: newTeam.passcode,
                 round2_password: newTeam.round2_password,
-                current_stage: 0,
+                current_stage: 1, // Start at Stage 1
                 status: "active",
                 house: assignedHouse,
                 path: assignedPath,
