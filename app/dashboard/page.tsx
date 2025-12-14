@@ -11,6 +11,7 @@ import { InventoryPouch } from '@/components/dashboard/InventoryPouch';
 import useIsMobile from '@/hooks/useIsMobile';
 import MobileStudentDashboard from '@/components/dashboard/MobileStudentDashboard';
 import { GrandFinale } from '@/components/dashboard/GrandFinale';
+import { ElderWand } from '@/components/dashboard/ElderWand';
 
 // --- Types ---
 interface UserSession {
@@ -283,7 +284,7 @@ export default function StudentDashboard() {
             if (scannedPath && scannedPath !== userPath) {
                 setScanFeedback({ type: 'error', msg: `Wrong Path! You are ${userPath?.toUpperCase()}.` });
                 // Deduct points for wrong scan
-                if (user.currentStage > 0) {
+                if (currentStage > 0) {
                     updateDoc(doc(db, "teams", user.teamId), { score: increment(-5) }).catch(console.error);
                 }
                 return;
@@ -297,7 +298,7 @@ export default function StudentDashboard() {
                     setScanFeedback({ type: 'error', msg: `Sequence Break! Find Stage ${currentTargetStage} first.` });
                 }
                 // Penalty
-                if (user.currentStage > 0) {
+                if (currentStage > 0) {
                     updateDoc(doc(db, "teams", user.teamId), { score: increment(-5) }).catch(console.error);
                 }
                 return;
@@ -312,6 +313,7 @@ export default function StudentDashboard() {
             // IMMEDIATE STOP & ANIMATION
             if (scannedStage === 5) {
                 setShowFinale(true); // Show Animation IMMEDIATELY
+                setScanFeedback({ type: 'success', msg: 'Victory!' }); // Feedback
 
                 // Update DB in background (mark as finished)
                 updateDoc(doc(db, "teams", user.teamId), {
@@ -323,6 +325,9 @@ export default function StudentDashboard() {
 
                 return; // STOP EXECUTION - Do not run standard success logic
             }
+
+            // --- STANDARD SUCCESS ---
+            setScanFeedback({ type: 'success', msg: 'Correct Rune! Decrypting...' }); // <--- GREEN FEEDBACK IMMEDIATELY
 
             // Wait a moment for the user to see success
             setTimeout(async () => {
@@ -438,13 +443,13 @@ export default function StudentDashboard() {
                                 </span>
                             </div>
 
-                            {/* Path Badge */}
-                            <div className="flex items-center gap-2">
+                            {/* Path Badge Hidden */}
+                            {/* <div className="flex items-center gap-2">
                                 <span className="text-xs text-gray-400 uppercase">Path Assigned:</span>
                                 <span className="text-xs font-bold text-cyan-300 uppercase tracking-widest">
                                     {user.path}
                                 </span>
-                            </div>
+                            </div> */}
                         </div>
                     </div>
                     {/* HEADER END */}
@@ -477,26 +482,11 @@ export default function StudentDashboard() {
                                         house={user.house}
                                     />
                                 </div>
-                                <InventoryPouch revealedPassword="" />
+                                {/* <InventoryPouch revealedPassword="" /> */}
 
                                 {/* The Elder Wand - Fragments */}
                                 <section>
-                                    <h3 className="text-xs uppercase tracking-widest opacity-60 mb-3 ml-1 text-white">The Elder Wand</h3>
-                                    <div className="flex justify-between gap-2 p-3 bg-black/20 rounded-xl border border-white/5 backdrop-blur-sm">
-                                        {[1, 2, 3, 4, 5].map((index) => {
-                                            const isUnlocked = index < currentStage;
-                                            return (
-                                                <div key={index} className={`relative flex items-center justify-center w-12 h-14 rounded-lg border transition-all duration-500 ${isUnlocked ? 'border-yellow-500/50 bg-yellow-900/10 shadow-[0_0_15px_rgba(234,179,8,0.2)]' : 'border-white/5 bg-white/5'}`}>
-                                                    <img
-                                                        src={isUnlocked ? `/assets/frag${index}.png` : '/assets/lock.png'}
-                                                        alt={isUnlocked ? `Fragment ${index}` : 'Locked'}
-                                                        className={`w-8 h-8 object-contain transition-all duration-500 ${isUnlocked ? 'drop-shadow-[0_0_8px_rgba(253,224,71,0.8)] scale-110' : 'opacity-20 grayscale scale-90'}`}
-                                                    />
-                                                    {isUnlocked && <div className="absolute inset-0 bg-yellow-500/10 blur-md rounded-lg" />}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
+                                    <ElderWand currentStage={currentStage} />
                                 </section>
                             </div>
 
@@ -553,7 +543,7 @@ export default function StudentDashboard() {
                                         handleScan(res[0].rawValue);
                                     }
                                 }}
-                                scanDelay={2000}
+                                scanDelay={500}
                                 paused={scanFeedback.type === 'success'}
                             />
 

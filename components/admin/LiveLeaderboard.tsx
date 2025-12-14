@@ -76,7 +76,7 @@ const TeamRow = ({ team, index, formattedTime }: { team: Team, index: number, fo
     }, [team.score]);
 
     const isFinished = team.status === 'finished';
-    const progress = (team.current_stage / 5) * 100;
+    const progress = (Math.max(0, team.current_stage - 1) / 5) * 100;
 
     // Rank Styles
     let rankIcon = <span className="text-white/20 font-mono text-xl">#{index + 1}</span>;
@@ -153,7 +153,7 @@ const TeamRow = ({ team, index, formattedTime }: { team: Team, index: number, fo
                         </motion.div>
                     </div>
                     <div className="mt-1 flex justify-between text-xs text-white/40 font-mono">
-                        <span>Stage {Math.min(team.current_stage, 5)} / 5</span>
+                        <span>Completed: {Math.max(0, team.current_stage - 1)} / 5</span>
                         <span className="text-white/60 font-bold">SCORE: {team.score || 0}</span>
                         {isFinished && <span className="text-green-400 font-bold animate-pulse">FINISHED</span>}
                     </div>

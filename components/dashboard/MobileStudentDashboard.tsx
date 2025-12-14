@@ -6,6 +6,7 @@ import { db } from '../../app/firebase';
 import { doc, onSnapshot, updateDoc, serverTimestamp, increment, runTransaction } from 'firebase/firestore';
 import { QuestJournal } from '@/components/dashboard/QuestJournal';
 import { GrandFinale } from '@/components/dashboard/GrandFinale';
+import { ElderWand } from '@/components/dashboard/ElderWand';
 
 // --- Types (Reused) ---
 interface UserSession {
@@ -235,8 +236,10 @@ export default function MobileStudentDashboard() {
             // 2. PATH CHECK (Strict)
             if (scannedPath && scannedPath !== userPath) {
                 setScanFeedback({ type: 'error', msg: `Wrong Path! You are ${userPath?.toUpperCase()}.` });
-                // Optional: Penalty
-                // updateDoc(doc(db, "teams", user.teamId), { score: increment(-10) });
+                // Penalty for wrong path
+                if (currentStage > 0) {
+                    updateDoc(doc(db, "teams", user.teamId), { score: increment(-5) });
+                }
                 return;
             }
 
@@ -247,6 +250,10 @@ export default function MobileStudentDashboard() {
                     setScanFeedback({ type: 'error', msg: `Already Completed Stage ${scannedStage}!` });
                 } else {
                     setScanFeedback({ type: 'error', msg: `Sequence Break! Find Stage ${currentTargetStage} first.` });
+                }
+                // Penalty for sequence break
+                if (currentStage > 0) {
+                    updateDoc(doc(db, "teams", user.teamId), { score: increment(-5) });
                 }
                 return;
             }
@@ -330,7 +337,9 @@ export default function MobileStudentDashboard() {
     if (!user) return <div className="h-screen bg-black text-white flex items-center justify-center">Loading...</div>;
 
     return (
-        <div className={`min-h-screen ${theme.bg} text-white font-cinzel relative pb-24`}>
+        <div className={`min-h-screen ${theme.bg} text-white font-cinzel relative pb-24 overflow-hidden`}>
+            {/* Stardust Overlay */}
+            <div className="absolute inset-0 opacity-20 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] mix-blend-overlay" />
 
             {/* Top Bar */}
             {/* Top Bar (Redesigned Vertical Layout) */}
@@ -351,14 +360,12 @@ export default function MobileStudentDashboard() {
                     </div>
                 </div>
 
-                {/* Row 3: House & Path Badges */}
+                {/* Row 3: House Badge Only */}
                 <div className="flex justify-center gap-3">
                     <span className={`text-[10px] bg-white/5 px-3 py-1 rounded-full border border-white/10 ${theme.text} uppercase tracking-widest shadow-sm`}>
                         {user.house}
                     </span>
-                    <span className="text-[10px] bg-white/5 px-3 py-1 rounded-full border border-white/10 text-purple-300 uppercase tracking-widest shadow-sm">
-                        {user.path} Path
-                    </span>
+                    {/* Path Hidden as per request */}
                 </div>
 
             </header>
@@ -398,22 +405,7 @@ export default function MobileStudentDashboard() {
 
                 {/* The Elder Wand - Fragments */}
                 <section>
-                    <h3 className="text-xs uppercase tracking-widest opacity-60 mb-3 ml-1">The Elder Wand</h3>
-                    <div className="flex justify-between gap-2 p-3 bg-black/20 rounded-xl border border-white/5 backdrop-blur-sm">
-                        {[1, 2, 3, 4, 5].map((index) => {
-                            const isUnlocked = index < currentStage;
-                            return (
-                                <div key={index} className={`relative flex items-center justify-center w-12 h-14 rounded-lg border transition-all duration-500 ${isUnlocked ? 'border-yellow-500/50 bg-yellow-900/10 shadow-[0_0_15px_rgba(234,179,8,0.2)]' : 'border-white/5 bg-white/5'}`}>
-                                    <img
-                                        src={isUnlocked ? `/assets/frag${index}.png` : '/assets/lock.png'}
-                                        alt={isUnlocked ? `Fragment ${index}` : 'Locked'}
-                                        className={`w-8 h-8 object-contain transition-all duration-500 ${isUnlocked ? 'drop-shadow-[0_0_8px_rgba(253,224,71,0.8)] scale-110' : 'opacity-20 grayscale scale-90'}`}
-                                    />
-                                    {isUnlocked && <div className="absolute inset-0 bg-yellow-500/10 blur-md rounded-lg" />}
-                                </div>
-                            );
-                        })}
-                    </div>
+                    <ElderWand currentStage={currentStage} />
                 </section>
 
             </main>
@@ -464,7 +456,7 @@ export default function MobileStudentDashboard() {
                                     onScan={(res) => {
                                         if (res && res.length > 0) handleScan(res[0].rawValue);
                                     }}
-                                    scanDelay={2000}
+                                    scanDelay={500}
                                 // paused={scanFeedback.type === 'success'} // Optional optimization
                                 />
                                 <motion.div
