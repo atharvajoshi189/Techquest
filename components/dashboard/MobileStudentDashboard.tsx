@@ -5,6 +5,7 @@ import { Scanner } from '@yudiel/react-qr-scanner';
 import { db } from '../../app/firebase';
 import { doc, onSnapshot, updateDoc, serverTimestamp, increment, runTransaction } from 'firebase/firestore';
 import { QuestJournal } from '@/components/dashboard/QuestJournal';
+import { GrandFinale } from '@/components/dashboard/GrandFinale';
 
 // --- Types (Reused) ---
 interface UserSession {
@@ -12,7 +13,7 @@ interface UserSession {
     teamName: string;
     leader: string;
     house: string;
-    path: 'alpha' | 'beta' | 'gamma';
+    path: 'alpha' | 'beta' | 'gamma' | 'delta' | 'charlie' | 'bravo' | 'theta';
     currentStage: number;
     score?: number;
 }
@@ -75,6 +76,20 @@ const CLUE_DATA = {
         4: "Where engines rest and duties start, Faculty park with careful art. Not inside the cars you’ll roam— Your next clue waits where they call home.",
         5: "Where numbers rule and records stay, The Accounts Section leads the way. Not inside, but near this place— Your next clue waits in silent grace."
     } as Record<number, string>,
+    bravo: {
+        1: "Beneath the yellow Lipton sign, Where orange walls and queues align, A tiny window serves its taste— Find this stall, your clue’s in place.",
+        2: "Where tools ring loud and sparks may fly, Where ideas are built, not just passed by. Seek the place where machines awake— Your next clue waits where makers make",
+        3: "I watch the space where A meets B, A frame of red in walls of yellow glee. I look upon the corner where you sit, With many dark glass squares, the shadows knit.",
+        4: "Where data and achievements proudly stand, A colourful board made by a clever hand. Right outside the DS staffroom door, That’s the place you’re looking for.",
+        5: "Look for the little pink box on the wall, It sits beneath the dark window for all. It holds a long hose to help put out flame, Find this spot between Block A and B for the game."
+    } as Record<number, string>,
+    theta: {
+        1: "Close to tools but calm and neat, A never-ending place to sit. Search the sign that has no end— Your next clue waits where curves bend.",
+        2: "I rise in steps but carry none, I lead somewhere yet lead to none. Search Block B where knowledge stays— Your treasure waits on unused ways.",
+        3: "Behind a desk of calm command, A guiding force for every plan. Look for the place where wisdom leads— Your treasure moves where order breeds",
+        4: "No chalk, no class, yet teachers stand, Captured still by a careful hand. Seek the wall where wisdom stays— Your next clue waits in framed displays",
+        5: "Resumes rise and interviews start, This place prepares you for your part. Seek the room where goals align— Your next clue waits where careers shine"
+    } as Record<number, string>,
 };
 
 export default function MobileStudentDashboard() {
@@ -93,8 +108,9 @@ export default function MobileStudentDashboard() {
     // UI State
     const [isScanning, setIsScanning] = useState(false);
     const [scanFeedback, setScanFeedback] = useState<{ type: 'success' | 'error' | 'idle', msg: string }>({ type: 'idle', msg: '' });
-    const [gatekeeperInput, setGatekeeperInput] = useState('');
+
     const [showFinalModal, setShowFinalModal] = useState(false);
+    const [showFinale, setShowFinale] = useState(false);
 
     // Load User
     useEffect(() => {
@@ -193,12 +209,7 @@ export default function MobileStudentDashboard() {
     const displayStage = logicalStage;
     const currentClue = (user?.path && CLUE_DATA[user.path]) ? (CLUE_DATA[user.path][displayStage] || "Wait for the next instruction...") : "Loading...";
 
-    const getRevealedPassword = () => {
-        if (!round2Password) return "????????".split('');
-        const completedStages = Math.max(logicalStage - 1, 0);
-        const revealCount = Math.min(completedStages * 2, 8);
-        return round2Password.substring(0, revealCount).padEnd(8, '_').split('');
-    };
+
 
     // --- HANDLERS ---
     // --- HANDLERS ---
@@ -247,6 +258,23 @@ export default function MobileStudentDashboard() {
             isProcessing.current = true; // Lock immediately
             setScanFeedback({ type: 'success', msg: 'Correct Rune! Decrypting...' });
 
+
+            // 4. CHECK FOR COMPLETION (Stage 5)
+            // IMMEDIATE STOP & ANIMATION
+            if (scannedStage === 5) {
+                setShowFinale(true); // Show Animation IMMEDIATELY
+
+                // Update DB in background
+                updateDoc(doc(db, "teams", user.teamId), {
+                    current_stage: 6,
+                    status: 'finished',
+                    finishedAt: serverTimestamp(),
+                    isFinished: true
+                }).catch(err => console.error(err));
+
+                return; // STOP Here
+            }
+
             setTimeout(async () => {
                 const teamRef = doc(db, "teams", user.teamId);
 
@@ -292,15 +320,7 @@ export default function MobileStudentDashboard() {
         }
     };
 
-    const handleGatekeeper = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (gatekeeperInput.toUpperCase() === round2Password.toUpperCase()) {
-            await updateDoc(doc(db, "teams", user!.teamId), { status: 'finished', finishedAt: serverTimestamp() });
-            setShowFinalModal(true);
-        } else {
-            alert("The Gate remains shut.");
-        }
-    };
+
 
     const handleLogout = () => {
         localStorage.removeItem('currentUser');
@@ -357,36 +377,16 @@ export default function MobileStudentDashboard() {
                 {/* Victory Card (Shown if finished but modal closed/refreshed) */}
                 {gameStatus === 'finished' && !showFinalModal && (
                     <div className="bg-gradient-to-br from-yellow-600 to-yellow-900 rounded-xl p-8 text-center shadow-lg border-2 border-yellow-400">
-                        <h1 className="text-4xl font-bold mb-2">VICTORY</h1>
-                        <p>Quest Completed!</p>
-                        <button
-                            onClick={() => window.location.href = 'https://kahoot.it/'}
-                            className="mt-4 px-6 py-2 bg-black/30 rounded-full border border-yellow-200 text-sm hover:bg-black/50"
-                        >
-                            Proceed to Round 2
-                        </button>
+                        <h1 className="text-3xl font-bold mb-2">CONGRATULATIONS</h1>
+                        <p>You have successfully completed Round-1.</p>
+                        <p className="text-sm opacity-80 mt-2">The results will be announced soon...</p>
                     </div>
                 )}
 
-                {/* Gatekeeper Mode */}
-                {isGameActive && gameStatus !== 'finished' && currentStage >= 5 && (
-                    <div className="bg-red-900/30 border-2 border-red-500 rounded-xl p-6 text-center space-y-4">
-                        <h2 className="text-xl font-bold text-red-400">FINAL PORTAL</h2>
-                        <p className="text-sm">Enter the Secret Password</p>
-                        <form onSubmit={handleGatekeeper} className="flex flex-col gap-3">
-                            <input
-                                className="bg-black/50 border border-white/20 p-3 rounded text-center text-xl tracking-[0.2em]"
-                                value={gatekeeperInput}
-                                onChange={e => setGatekeeperInput(e.target.value)}
-                                placeholder="PASSWORD"
-                            />
-                            <button type="submit" className="bg-red-600 py-3 rounded font-bold">UNLOCK</button>
-                        </form>
-                    </div>
-                )}
+
 
                 {/* Quest Card (Hide if finished or passed stage 5) */}
-                {isGameActive && gameStatus !== 'finished' && currentStage < 5 && (
+                {isGameActive && gameStatus !== 'finished' && (
                     <section className="relative">
                         <QuestJournal
                             clue={currentClue}
@@ -396,21 +396,23 @@ export default function MobileStudentDashboard() {
                     </section>
                 )}
 
-                {/* Collected Fragments - Horizontal Scroll */}
+                {/* The Elder Wand - Fragments */}
                 <section>
-                    <h3 className="text-xs uppercase tracking-widest opacity-60 mb-3 ml-1">Collected Fragments</h3>
-                    <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide">
-                        {getRevealedPassword().map((char, i) => (
-                            <div key={i} className={`flex-shrink-0 w-12 h-14 rounded border flex items-center justify-center text-xl font-bold shadow-sm
-                                ${char !== '_'
-                                    ? 'bg-[#fffdf5] text-black border-[#d7ccc8]'
-                                    : 'bg-white/5 border-white/10 text-white/20'}
-                            `}>
-                                {char === '_' ? '?' : char}
-                            </div>
-                        ))}
-                        {/* Placeholder for spacing */}
-                        <div className="w-2 flex-shrink-0" />
+                    <h3 className="text-xs uppercase tracking-widest opacity-60 mb-3 ml-1">The Elder Wand</h3>
+                    <div className="flex justify-between gap-2 p-3 bg-black/20 rounded-xl border border-white/5 backdrop-blur-sm">
+                        {[1, 2, 3, 4, 5].map((index) => {
+                            const isUnlocked = index < currentStage;
+                            return (
+                                <div key={index} className={`relative flex items-center justify-center w-12 h-14 rounded-lg border transition-all duration-500 ${isUnlocked ? 'border-yellow-500/50 bg-yellow-900/10 shadow-[0_0_15px_rgba(234,179,8,0.2)]' : 'border-white/5 bg-white/5'}`}>
+                                    <img
+                                        src={isUnlocked ? `/assets/frag${index}.png` : '/assets/lock.png'}
+                                        alt={isUnlocked ? `Fragment ${index}` : 'Locked'}
+                                        className={`w-8 h-8 object-contain transition-all duration-500 ${isUnlocked ? 'drop-shadow-[0_0_8px_rgba(253,224,71,0.8)] scale-110' : 'opacity-20 grayscale scale-90'}`}
+                                    />
+                                    {isUnlocked && <div className="absolute inset-0 bg-yellow-500/10 blur-md rounded-lg" />}
+                                </div>
+                            );
+                        })}
                     </div>
                 </section>
 
@@ -429,7 +431,7 @@ export default function MobileStudentDashboard() {
 
                 {/* SCAN BUTTON - Conditionally Rendered */}
                 {/* Condition: Stage <= 5 AND Not Finished AND Modal Not Open */}
-                {isGameActive && gameStatus !== 'finished' && currentStage < 5 && !showFinalModal && (
+                {isGameActive && gameStatus !== 'finished' && !showFinalModal && (
                     <button
                         onClick={() => { setScanFeedback({ type: 'idle', msg: '' }); setIsScanning(true); }}
                         className={`flex-1 h-14 rounded-full bg-gradient-to-r ${theme.accent.includes('red') ? 'from-red-900 to-red-600' : 'from-indigo-900 to-blue-600'} flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(0,0,0,0.5)] border border-white/20 active:scale-95 transition-transform`}
@@ -483,6 +485,9 @@ export default function MobileStudentDashboard() {
                 )}
             </AnimatePresence>
 
+            {/* GRAND FINALE ANIMATION */}
+            {showFinale && <GrandFinale />}
+
             {/* FINAL CONGRATULATIONS MODAL */}
             <AnimatePresence>
                 {showFinalModal && (
@@ -507,24 +512,19 @@ export default function MobileStudentDashboard() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.5 }}
-                            className="text-white/80 text-lg md:text-xl leading-relaxed max-w-md"
+                            className="text-white/80 text-lg md:text-xl leading-relaxed"
                         >
-                            Round 1 Completed. <br />
-                            <span className="text-yellow-200">You have proven your worth.</span>
+                            You have successfully completed Round-1
                         </motion.p>
 
-                        <motion.button
-                            initial={{ scale: 0.8, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            transition={{ delay: 1, type: "spring" }}
-                            onClick={() => window.location.href = 'https://kahoot.it/'}
-                            className="px-10 py-4 bg-gradient-to-r from-red-600 to-red-800 rounded-full border-2 border-red-400 shadow-[0_0_30px_rgba(220,38,38,0.6)] text-white text-xl font-bold tracking-[0.2em] relative overflow-hidden group"
+                        <motion.p
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.8 }}
+                            className="text-white/60 text-base animate-pulse"
                         >
-                            <span className="relative z-10">ENTER ROUND 2</span>
-                            <div className="absolute inset-0 bg-white/20 blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </motion.button>
+                            The results will be announced soon...
+                        </motion.p>
 
                         {/* Confetti or Decor could go here later */}
                     </motion.div>

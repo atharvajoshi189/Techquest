@@ -10,6 +10,7 @@ import { QuestJournal } from '@/components/dashboard/QuestJournal';
 import { InventoryPouch } from '@/components/dashboard/InventoryPouch';
 import useIsMobile from '@/hooks/useIsMobile';
 import MobileStudentDashboard from '@/components/dashboard/MobileStudentDashboard';
+import { GrandFinale } from '@/components/dashboard/GrandFinale';
 
 // --- Types ---
 interface UserSession {
@@ -17,7 +18,7 @@ interface UserSession {
     teamName: string;
     leader: string;
     house: string;
-    path: 'alpha' | 'beta' | 'gamma';
+    path: 'alpha' | 'beta' | 'gamma' | 'delta' | 'charlie' | 'bravo' | 'theta';
     currentStage: number;
     score?: number;
 }
@@ -86,18 +87,18 @@ const CLUE_DATA = {
         5: "Under my giant metal crown, Athletes cheer and never frown... Come here — where champions play! "
     } as Record<number, string>,
     gamma: {
-        1: "Always stand in front of canteen but only get waste to eat.",
+        1: "He knows every face, he knows every name, He guards your path each day the same. Where journeys begin and strangers wait, Your next clue rests with the man at the gate..",
         2: "I point the way but never walked , I speak direction without talk. ",
-        3: "A stage with screen where we showcase your talent/n find where I am!",
+        3: "Where silence rules and pages glide, Your next clue waits where readers hide.",
         4: "I am marked with lines but not a notebook I hold two nets yet catch no fish./n Seek me where whistle rule the air , here clue awaits where players dare!",
-        5: "I give shadow in the sun and place to sit and to cheer like audience and have fun! "
+        5: "Always stand in front of canteen but only get waste to eat."
     } as Record<number, string>,
     delta: {
-        1: " He knows every face, he knows every name,He guards your path each day the same.Where journeys begin and strangers wait,Your next clue rests with the man at the gate.",
-        2: "Where codes begin and concepts load,A board displays the club you chose.Events and achievements proudly stand—Your next clue waits on this zenith land.",
-        3: "Inside, Ashwa Riders shape with might;Outside, calm replaces light.Seek the seat that sways with grace—Your hidden clue is in that place.",
-        4: "Where silence rules and pages glide,Your next clue waits where readers hide.",
-        5: "Where IT minds guide every day,Their staff room stands along the way.But don’t step in—stay just outside,There your next hidden clues reside."
+        1: "Where codes begin and concepts load, A board displays the club you chose. Events and achievements proudly stand— Your next clue waits on this zenith land.",
+        2: "A stage with screen where we showcase your talent. Find where I am!",
+        3: "Inside, Ashwa Riders shape with might; Outside, calm replaces light. Seek the seat that sways with grace— Your hidden clue is in that place.",
+        4: "Where IT minds guide every day, Their staff room stands along the way. But don’t step in—stay just outside, There your next hidden clues reside.",
+        5: "I give shadow in the sun and place to sit and to cheer like audience and have fun!"
     } as Record<number, string>,
     charlie: {
         1: "Where guiding hearts quietly stay, The home of our fathers leads the way. Not inside—your clue is just outside— Seek the spot where wisdom seems to reside.",
@@ -105,6 +106,20 @@ const CLUE_DATA = {
         3: "Where Civil minds plan stone and steel, Their staff room holds ideas real. But your clue is not inside that door— It waits just outside, on the corridor floor.",
         4: "Where engines rest and duties start, Faculty park with careful art. Not inside the cars you’ll roam— Your next clue waits where they call home.",
         5: "Where numbers rule and records stay, The Accounts Section leads the way. Not inside, but near this place— Your next clue waits in silent grace."
+    } as Record<number, string>,
+    bravo: {
+        1: "Beneath the yellow Lipton sign, Where orange walls and queues align, A tiny window serves its taste— Find this stall, your clue’s in place.",
+        2: "Where tools ring loud and sparks may fly, Where ideas are built, not just passed by. Seek the place where machines awake— Your next clue waits where makers make",
+        3: "I watch the space where A meets B, A frame of red in walls of yellow glee. I look upon the corner where you sit, With many dark glass squares, the shadows knit.",
+        4: "Where data and achievements proudly stand, A colourful board made by a clever hand. Right outside the DS staffroom door, That’s the place you’re looking for.",
+        5: "Look for the little pink box on the wall, It sits beneath the dark window for all. It holds a long hose to help put out flame, Find this spot between Block A and B for the game."
+    } as Record<number, string>,
+    theta: {
+        1: "Close to tools but calm and neat, A never-ending place to sit. Search the sign that has no end— Your next clue waits where curves bend.",
+        2: "I rise in steps but carry none, I lead somewhere yet lead to none. Search Block B where knowledge stays— Your treasure waits on unused ways.",
+        3: "Behind a desk of calm command, A guiding force for every plan. Look for the place where wisdom leads— Your treasure moves where order breeds",
+        4: "No chalk, no class, yet teachers stand, Captured still by a careful hand. Seek the wall where wisdom stays— Your next clue waits in framed displays",
+        5: "Resumes rise and interviews start, This place prepares you for your part. Seek the room where goals align— Your next clue waits where careers shine"
     } as Record<number, string>,
 };
 
@@ -128,7 +143,9 @@ export default function StudentDashboard() {
     const [showIntro, setShowIntro] = useState(true);
     const [isScanning, setIsScanning] = useState(false);
     const [scanFeedback, setScanFeedback] = useState<{ type: 'success' | 'error' | 'idle', msg: string }>({ type: 'idle', msg: '' });
-    const [gatekeeperInput, setGatekeeperInput] = useState('');
+
+    const [showFinalModal, setShowFinalModal] = useState(false);
+    const [showFinale, setShowFinale] = useState(false);
 
     // 1. Initialize User from LocalStorage
     useEffect(() => {
@@ -234,17 +251,7 @@ export default function StudentDashboard() {
         ? (CLUE_DATA[user.path][displayStage] || "Wait for the next instruction...")
         : "Loading Destiny...";
 
-    // Reveal Password Fragments Logic
-    const getRevealedPassword = () => {
-        if (!round2Password) return "????????";
-        // Reveal 2 chars per stage completed
-        // Stage 1 -> 2 chars
-        // Stage 2 -> 4 chars...
-        // Reveal 2 chars per completed stage (nothing at stage 1 until first scan)
-        const completedStages = Math.max(logicalStage - 1, 0);
-        const revealCount = Math.min(completedStages * 2, 8);
-        return round2Password.substring(0, revealCount).padEnd(8, '_').split('').join(' ');
-    };
+
 
     // Handlers
     // Handlers
@@ -277,7 +284,7 @@ export default function StudentDashboard() {
                 setScanFeedback({ type: 'error', msg: `Wrong Path! You are ${userPath?.toUpperCase()}.` });
                 // Deduct points for wrong scan
                 if (user.currentStage > 0) {
-                    updateDoc(doc(db, "teams", user.teamId), { score: increment(-10) }).catch(console.error);
+                    updateDoc(doc(db, "teams", user.teamId), { score: increment(-5) }).catch(console.error);
                 }
                 return;
             }
@@ -291,7 +298,7 @@ export default function StudentDashboard() {
                 }
                 // Penalty
                 if (user.currentStage > 0) {
-                    updateDoc(doc(db, "teams", user.teamId), { score: increment(-10) }).catch(console.error);
+                    updateDoc(doc(db, "teams", user.teamId), { score: increment(-5) }).catch(console.error);
                 }
                 return;
             }
@@ -300,8 +307,22 @@ export default function StudentDashboard() {
             if (currentTargetStage > 5) return;
 
             // --- SUCCESS ---
-            isProcessing.current = true; // Lock immediately
-            setScanFeedback({ type: 'success', msg: 'Rune Deciphered! Accessing Memory...' });
+
+            // 4. CHECK FOR COMPLETION (Stage 5)
+            // IMMEDIATE STOP & ANIMATION
+            if (scannedStage === 5) {
+                setShowFinale(true); // Show Animation IMMEDIATELY
+
+                // Update DB in background (mark as finished)
+                updateDoc(doc(db, "teams", user.teamId), {
+                    current_stage: 6,
+                    status: 'finished', // Ensure status is marked finished
+                    finishedAt: serverTimestamp(),
+                    isFinished: true // Explicit flag if needed
+                }).catch(err => console.error("Finale Update Error", err));
+
+                return; // STOP EXECUTION - Do not run standard success logic
+            }
 
             // Wait a moment for the user to see success
             setTimeout(async () => {
@@ -350,14 +371,7 @@ export default function StudentDashboard() {
         }
     };
 
-    const handleGatekeeper = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (gatekeeperInput.toUpperCase() === round2Password.toUpperCase()) {
-            await updateDoc(doc(db, "teams", user!.teamId), { status: 'finished', finishedAt: serverTimestamp() });
-        } else {
-            alert("The Gate remains shut.");
-        }
-    };
+
 
     const handleStartScanning = () => {
         setScanFeedback({ type: 'idle', msg: '' });
@@ -446,24 +460,9 @@ export default function StudentDashboard() {
                         </div>
                     ) : gameStatus === 'finished' ? (
                         <div className="p-4 md:p-8 rounded-2xl bg-black/60 border border-yellow-500 text-center space-y-4 shadow-[0_0_50px_rgba(234,179,8,0.3)]">
-                            <h1 className="text-3xl md:text-5xl font-bold text-yellow-400">VICTORY</h1>
-                            <p className="text-base md:text-xl">You have completed the Triwizard Quest.</p>
-                        </div>
-                    ) : logicalStage > 5 ? (
-                        // GATEKEEPER MODE
-                        <div className={`p-4 md:p-8 rounded-2xl bg-black/60 border-2 ${theme.border} ${theme.glow} text-center space-y-6`}>
-                            <h2 className="text-2xl md:text-3xl text-red-500 tracking-[0.2em] font-bold">THE FINAL PORTAL</h2>
-                            <p className="text-white/70 text-sm md:text-base">Enter the 8-character Secret Password to claim victory.</p>
-                            <div className="font-mono text-2xl md:text-3xl tracking-[0.3em] md:tracking-[0.5em] text-white my-4 break-all">{getRevealedPassword()}</div>
-                            <form onSubmit={handleGatekeeper} className="max-w-md mx-auto flex flex-col md:flex-row gap-2">
-                                <input
-                                    className="flex-1 bg-black/50 border border-white/30 p-3 rounded text-center outline-none focus:border-red-500"
-                                    placeholder="PASSWORD"
-                                    value={gatekeeperInput}
-                                    onChange={e => setGatekeeperInput(e.target.value)}
-                                />
-                                <button type="submit" className="bg-red-600 px-6 py-2 rounded font-bold hover:bg-red-700">UNLOCK</button>
-                            </form>
+                            <h1 className="text-3xl md:text-5xl font-bold text-yellow-400">CONGRATULATIONS</h1>
+                            <p className="text-base md:text-xl">You have successfully completed Round-1.</p>
+                            <p className="text-white/60 text-sm">The results will be announced soon...</p>
                         </div>
                     ) : (
                         // NORMAL GAMEPLAY
@@ -478,11 +477,32 @@ export default function StudentDashboard() {
                                         house={user.house}
                                     />
                                 </div>
-                                <InventoryPouch revealedPassword={getRevealedPassword()} />
+                                <InventoryPouch revealedPassword="" />
+
+                                {/* The Elder Wand - Fragments */}
+                                <section>
+                                    <h3 className="text-xs uppercase tracking-widest opacity-60 mb-3 ml-1 text-white">The Elder Wand</h3>
+                                    <div className="flex justify-between gap-2 p-3 bg-black/20 rounded-xl border border-white/5 backdrop-blur-sm">
+                                        {[1, 2, 3, 4, 5].map((index) => {
+                                            const isUnlocked = index < currentStage;
+                                            return (
+                                                <div key={index} className={`relative flex items-center justify-center w-12 h-14 rounded-lg border transition-all duration-500 ${isUnlocked ? 'border-yellow-500/50 bg-yellow-900/10 shadow-[0_0_15px_rgba(234,179,8,0.2)]' : 'border-white/5 bg-white/5'}`}>
+                                                    <img
+                                                        src={isUnlocked ? `/assets/frag${index}.png` : '/assets/lock.png'}
+                                                        alt={isUnlocked ? `Fragment ${index}` : 'Locked'}
+                                                        className={`w-8 h-8 object-contain transition-all duration-500 ${isUnlocked ? 'drop-shadow-[0_0_8px_rgba(253,224,71,0.8)] scale-110' : 'opacity-20 grayscale scale-90'}`}
+                                                    />
+                                                    {isUnlocked && <div className="absolute inset-0 bg-yellow-500/10 blur-md rounded-lg" />}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </section>
                             </div>
 
                             {/* Right: Actions / Scanner */}
                             <div className="flex flex-col gap-4 md:gap-6">
+
                                 <div className={`flex-1 min-h-[200px] md:min-h-[300px] rounded-2xl bg-black/30 border ${theme.border} flex items-center justify-center relative overflow-hidden group hover:bg-black/40 transition-colors cursor-pointer active:scale-95 duration-200`}
                                     onClick={handleStartScanning}
                                 >
@@ -571,6 +591,30 @@ export default function StudentDashboard() {
                             {scanFeedback.type === 'error' && <p className="text-red-400 text-sm md:text-xl font-bold font-cinzel drop-shadow-md whitespace-pre-wrap">⚠️ {scanFeedback.msg}</p>}
                         </div>
 
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* GRAND FINALE ANIMATION */}
+            {showFinale && <GrandFinale />}
+
+            {/* FINAL MODAL UPDATED */}
+            <AnimatePresence>
+                {showFinalModal && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center space-y-6"
+                    >
+                        <h1 className="text-4xl md:text-5xl font-bold text-yellow-500 tracking-widest drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]">
+                            CONGRATULATIONS
+                        </h1>
+                        <p className="text-white/80 text-xl">
+                            You have successfully completed Round-1
+                        </p>
+                        <p className="text-white/60 text-lg animate-pulse">
+                            The results will be announced soon...
+                        </p>
                     </motion.div>
                 )}
             </AnimatePresence>

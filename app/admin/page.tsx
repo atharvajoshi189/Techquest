@@ -33,8 +33,8 @@ interface Team {
     last_updated?: { seconds: number };
     startedAt?: number;
     finishedAt?: { seconds: number };
-    round2_password?: string;
-    path?: 'alpha' | 'beta' | 'gamma' | 'delta' | 'charlie';
+
+    path?: 'alpha' | 'beta' | 'gamma' | 'delta' | 'charlie' | 'bravo' | 'theta';
     score?: number;
 }
 
@@ -67,12 +67,12 @@ const formatDuration = (ms: number) => {
 export default function AdminPage() {
     const [activeTab, setActiveTab] = useState<'registration' | 'race' | 'runes'>('registration');
     const [teams, setTeams] = useState<Team[]>([]);
-    const [newTeam, setNewTeam] = useState({ name: '', leader: '', passcode: '', round2_password: '' });
+    const [newTeam, setNewTeam] = useState({ name: '', leader: '', passcode: '' });
     const [isGameActive, setIsGameActive] = useState(false);
     const [currentTime, setCurrentTime] = useState(Date.now());
     const [tournamentStartTime, setTournamentStartTime] = useState<number | null>(null);
     const [activeTournamentId, setActiveTournamentId] = useState<string | null>(null);
-    const [runePath, setRunePath] = useState<'alpha' | 'beta' | 'gamma' | 'delta' | 'charlie'>('alpha');
+    const [runePath, setRunePath] = useState<'alpha' | 'beta' | 'gamma' | 'delta' | 'charlie' | 'bravo' | 'theta'>('alpha');
     const [runeStage, setRuneStage] = useState(1);
 
     // --- Authentication State ---
@@ -169,10 +169,7 @@ export default function AdminPage() {
             return;
         }
 
-        if (newTeam.round2_password.length !== 8) {
-            alert("Round 2 Password MUST be exactly 8 characters.");
-            return;
-        }
+
 
         try {
             if (!activeTournamentId) {
@@ -182,7 +179,7 @@ export default function AdminPage() {
 
             // 2. The Sorting Hat (Smart Balanced Allocation - Equal Distribution)
             const HOUSES = ['Gryffindor', 'Slytherin', 'Ravenclaw', 'Hufflepuff'];
-            const ALL_PATHS: ('alpha' | 'beta' | 'gamma' | 'delta' | 'charlie')[] = ['alpha', 'beta', 'gamma', 'delta', 'charlie'];
+            const ALL_PATHS: ('alpha' | 'beta' | 'gamma' | 'delta' | 'charlie' | 'bravo' | 'theta')[] = ['alpha', 'beta', 'gamma', 'delta', 'charlie', 'bravo', 'theta'];
 
             // A. Fetch existing teams in this tournament
             const q = query(collection(db, 'teams'), where('tournamentId', '==', activeTournamentId));
@@ -208,7 +205,7 @@ export default function AdminPage() {
             const assignedHouse = leastUsedHouses[randomHouseIndex];
 
             // F. Count Path Usage (Balanced Distribution)
-            const pathCounts: Record<string, number> = { alpha: 0, beta: 0, gamma: 0, delta: 0, charlie: 0 };
+            const pathCounts: Record<string, number> = { alpha: 0, beta: 0, gamma: 0, delta: 0, charlie: 0, bravo: 0, theta: 0 };
             existingTeams.forEach(t => {
                 if (t.path && pathCounts[t.path] !== undefined) {
                     pathCounts[t.path]++;
@@ -238,7 +235,7 @@ export default function AdminPage() {
                 name: newTeam.name,
                 leader: newTeam.leader,
                 passcode: newTeam.passcode,
-                round2_password: newTeam.round2_password,
+
                 current_stage: 1, // Start at Stage 1
                 status: "active",
                 house: assignedHouse,
@@ -250,7 +247,7 @@ export default function AdminPage() {
                 tournamentId: activeTournamentId // Session Link
             });
 
-            setNewTeam({ name: '', leader: '', passcode: '', round2_password: '' });
+            setNewTeam({ name: '', leader: '', passcode: '' });
             alert("Team Saved to Firebase Cloud!");
         } catch (err: unknown) {
             console.error(err);
@@ -460,25 +457,7 @@ export default function AdminPage() {
                                                 </div>
                                             ))}
 
-                                            {/* Secret Field */}
-                                            <div className="relative group">
-                                                <div className="absolute inset-0 bg-red-500/10 blur-sm rounded translate-y-1" />
-                                                <input
-                                                    value={newTeam.round2_password}
-                                                    onChange={(e) => setNewTeam({ ...newTeam, round2_password: e.target.value })}
-                                                    placeholder="Round 2 Secret (8 chars)"
-                                                    className="w-full bg-[#ffccbc] text-[#bf360c] font-hand placeholder-[#ffab91] text-lg md:text-xl p-3 rounded shadow-md border-2 border-[#ffab91] focus:border-[#d84315] outline-none transform transition-transform focus:-translate-y-1 focus:shadow-lg"
-                                                    style={{ fontFamily: 'cursive' }}
-                                                    maxLength={8}
-                                                    minLength={8}
-                                                    required
-                                                />
-                                            </div>
 
-                                            {/* Warning Embers */}
-                                            <div className="text-center text-[#fca5a5] text-xs md:text-sm italic font-sans bg-black/20 p-2 rounded animate-pulse">
-                                                ⚠️ The Secret is the key to the final mystery.
-                                            </div>
 
                                             {/* Brass Plaque Button */}
                                             <motion.button
@@ -548,7 +527,7 @@ export default function AdminPage() {
                                                                 </div>
                                                                 <div className="flex flex-col gap-1 text-[8px] md:text-[10px] uppercase font-bold text-[#8d6e63]">
                                                                     <span>Code: {team.passcode}</span>
-                                                                    <span>Secret: {team.round2_password}</span>
+
                                                                 </div>
                                                             </div>
                                                         </motion.div>
@@ -608,6 +587,8 @@ export default function AdminPage() {
                                                 <option value="gamma">Gamma Path</option>
                                                 <option value="delta">Delta Path</option>
                                                 <option value="charlie">Charlie Path</option>
+                                                <option value="bravo">Bravo Path</option>
+                                                <option value="theta">Theta Path</option>
                                             </select>
                                         </div>
 
