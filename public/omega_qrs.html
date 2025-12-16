@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Omega Path QRs</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #f0f0f0; padding: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { margin-bottom: 30px; color: #333; }
+        img { max-width: 100%; height: auto; border: 1px solid #ddd; }
+        .label { margin-top: 10px; font-weight: bold; color: #555; }
+        .payload { font-family: monospace; font-size: 12px; color: #888; margin-top: 5px; word-break: break-all; }
+        @media print {
+            body { background: white; }
+            .card { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Omega Path - QR Codes</h1>
+    <div class="grid">
+        <!-- Stage 1 -->
+        <div class="card">
+            <h2>Stage 1</h2>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=%7B%22path_id%22%3A%22omega%22%2C%22stage%22%3A1%7D" alt="Stage 1">
+            <div class="label">Omega - Stage 1</div>
+            <div class="payload">{"path_id":"omega","stage":1}</div>
+        </div>
+
+        <!-- Stage 2 -->
+        <div class="card">
+            <h2>Stage 2</h2>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=%7B%22path_id%22%3A%22omega%22%2C%22stage%22%3A2%7D" alt="Stage 2">
+            <div class="label">Omega - Stage 2</div>
+            <div class="payload">{"path_id":"omega","stage":2}</div>
+        </div>
+
+        <!-- Stage 3 -->
+        <div class="card">
+            <h2>Stage 3</h2>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=%7B%22path_id%22%3A%22omega%22%2C%22stage%22%3A3%7D" alt="Stage 3">
+            <div class="label">Omega - Stage 3</div>
+            <div class="payload">{"path_id":"omega","stage":3}</div>
+        </div>
+
+        <!-- Stage 4 -->
+        <div class="card">
+            <h2>Stage 4</h2>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=%7B%22path_id%22%3A%22omega%22%2C%22stage%22%3A4%7D" alt="Stage 4">
+            <div class="label">Omega - Stage 4</div>
+            <div class="payload">{"path_id":"omega","stage":4}</div>
+        </div>
+
+        <!-- Stage 5 -->
+        <div class="card">
+            <h2>Stage 5</h2>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=%7B%22path_id%22%3A%22omega%22%2C%22stage%22%3A5%7D" alt="Stage 5">
+            <div class="label">Omega - Stage 5</div>
+            <div class="payload">{"path_id":"omega","stage":5}</div>
+        </div>
+    </div>
+</body>
+</html>

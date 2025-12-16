@@ -19,7 +19,7 @@ interface UserSession {
     teamName: string;
     leader: string;
     house: string;
-    path: 'alpha' | 'beta' | 'gamma' | 'delta' | 'charlie' | 'bravo' | 'theta';
+    path: 'alpha' | 'beta' | 'gamma' | 'delta' | 'charlie' | 'bravo' | 'theta' | 'omega';
     currentStage: number;
     score?: number;
 }
@@ -121,6 +121,13 @@ const CLUE_DATA = {
         3: "Behind a desk of calm command, A guiding force for every plan. Look for the place where wisdom leads— Your treasure moves where order breeds",
         4: "No chalk, no class, yet teachers stand, Captured still by a careful hand. Seek the wall where wisdom stays— Your next clue waits in framed displays",
         5: "Resumes rise and interviews start, This place prepares you for your part. Seek the room where goals align— Your next clue waits where careers shine"
+    } as Record<number, string>,
+    omega: {
+        1: "A computer science branch that deals with bussiness management system .",
+        2: "a frame in block A that sync with theme of technex.",
+        3: "I go up and down but never walk, I carry many without a talk. Find your clue where buttons decide— The silent helper by your side.",
+        4: "Relativity and E=mc^2 once he taught, Through time and space his ideas fought. Look for the face that changed the view— Your next clue waits where thoughts break through",
+        5: "Where signals travel and circuits speak, Where logic flows both strong and sleek. Find your clue where waves are sent— The ETC wing is where you’re meant."
     } as Record<number, string>,
 };
 

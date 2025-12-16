@@ -34,7 +34,7 @@ interface Team {
     startedAt?: number;
     finishedAt?: { seconds: number };
 
-    path?: 'alpha' | 'beta' | 'gamma' | 'delta' | 'charlie' | 'bravo' | 'theta';
+    path?: 'alpha' | 'beta' | 'gamma' | 'delta' | 'charlie' | 'bravo' | 'theta' | 'omega';
     score?: number;
 }
 
@@ -72,7 +72,7 @@ export default function AdminPage() {
     const [currentTime, setCurrentTime] = useState(Date.now());
     const [tournamentStartTime, setTournamentStartTime] = useState<number | null>(null);
     const [activeTournamentId, setActiveTournamentId] = useState<string | null>(null);
-    const [runePath, setRunePath] = useState<'alpha' | 'beta' | 'gamma' | 'delta' | 'charlie' | 'bravo' | 'theta'>('alpha');
+    const [runePath, setRunePath] = useState<'alpha' | 'beta' | 'gamma' | 'delta' | 'charlie' | 'bravo' | 'theta' | 'omega'>('alpha');
     const [runeStage, setRuneStage] = useState(1);
 
     // --- Authentication State ---
@@ -179,7 +179,7 @@ export default function AdminPage() {
 
             // 2. The Sorting Hat (Smart Balanced Allocation - Equal Distribution)
             const HOUSES = ['Gryffindor', 'Slytherin', 'Ravenclaw', 'Hufflepuff'];
-            const ALL_PATHS: ('alpha' | 'beta' | 'gamma' | 'delta' | 'charlie' | 'bravo' | 'theta')[] = ['alpha', 'beta', 'gamma', 'delta', 'charlie', 'bravo', 'theta'];
+            const ALL_PATHS: ('alpha' | 'beta' | 'gamma' | 'delta' | 'charlie' | 'bravo' | 'theta' | 'omega')[] = ['alpha', 'beta', 'gamma', 'delta', 'charlie', 'bravo', 'theta', 'omega'];
 
             // A. Fetch existing teams in this tournament
             const q = query(collection(db, 'teams'), where('tournamentId', '==', activeTournamentId));
@@ -205,7 +205,7 @@ export default function AdminPage() {
             const assignedHouse = leastUsedHouses[randomHouseIndex];
 
             // F. Count Path Usage (Balanced Distribution)
-            const pathCounts: Record<string, number> = { alpha: 0, beta: 0, gamma: 0, delta: 0, charlie: 0, bravo: 0, theta: 0 };
+            const pathCounts: Record<string, number> = { alpha: 0, beta: 0, gamma: 0, delta: 0, charlie: 0, bravo: 0, theta: 0, omega: 0 };
             existingTeams.forEach(t => {
                 if (t.path && pathCounts[t.path] !== undefined) {
                     pathCounts[t.path]++;
@@ -589,6 +589,7 @@ export default function AdminPage() {
                                                 <option value="charlie">Charlie Path</option>
                                                 <option value="bravo">Bravo Path</option>
                                                 <option value="theta">Theta Path</option>
+                                                <option value="omega">Omega Path</option>
                                             </select>
                                         </div>
 
