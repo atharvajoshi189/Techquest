@@ -47,7 +47,7 @@ const CLUE_DATA = {
         2: "Standing proud for every techie, This place welcomes you politely. ",
         3: "Where answers end and marks begin — Seek the cell that judges if you lose or win. ",
         4: "Engines roar, then fall to hush, Here they wait without a rush. Find your clue among the lanes.",
-        5: "Dribble, pass, shoot… and score! Find the place with a painted floor."
+        5: "A Christmas tree standing tall and bright,\nOutside Block B, a festive sight.\nWith lights and gifts in branches free,\nFind the clue where it loves to be"
     } as Record<number, string>,
     beta: {
         1: "A plate of noodles and a drink so cool, A poster here makes you drool.",
@@ -59,8 +59,8 @@ const CLUE_DATA = {
     gamma: {
         1: "Always stand in front of canteen but only get waste to eat.",
         2: "I point the way but never walked , I speak direction without talk. ",
-        3: "A stage with screen where we showcase your talent/n find where I am!",
-        4: "I am marked with lines but not a notebook I hold two nets yet catch no fish./n Seek me where whistle rule the air , here clue awaits where players dare!",
+        3: "Where teachers sit for a peaceful bite,\nAway from students and all the light.\nFind the spot where faculty eat\nYour hidden clue waits beneath a seat.",
+        4: "Where guidance waits and work is planned,\nOutside SADC, the clues now stand.\nNot inside halls where papers stay,\nLook just beyond to find your way.",
         5: "I give shadow in the sun and place to sit and to cheer like audience and have fun! "
     } as Record<number, string>,
     delta: {
@@ -111,6 +111,7 @@ export default function MobileStudentDashboard() {
     const [isGameActive, setIsGameActive] = useState(false);
     const [globalStartTime, setGlobalStartTime] = useState<any>(null);
     const [teamJoinedAt, setTeamJoinedAt] = useState<number | null>(null);
+    const [teamFinishedAt, setTeamFinishedAt] = useState<any>(null);
     const [timer, setTimer] = useState("00:00:00");
 
     // UI State
@@ -161,6 +162,9 @@ export default function MobileStudentDashboard() {
                 if (data.createdAt || data.startedAt) {
                     setTeamJoinedAt(data.createdAt || data.startedAt);
                 }
+                if (data.finishedAt) {
+                    setTeamFinishedAt(data.finishedAt);
+                }
                 // Check if already finished to show modal if refreshing? 
                 // Suggestion: Only show modal on explicit action or if status is newly finished?
                 // For now, let's keep it manual trigger via gatekeeper for the "Wow" effect, unless already finished.
@@ -179,8 +183,8 @@ export default function MobileStudentDashboard() {
             return;
         }
 
-        const interval = setInterval(() => {
-            const now = Date.now();
+        const updateTimer = () => {
+            const now = teamFinishedAt ? (teamFinishedAt.seconds ? teamFinishedAt.seconds * 1000 : teamFinishedAt.toDate().getTime()) : Date.now();
 
             // Convert Firestore Timestamps to Milliseconds
             const globalStartMs = globalStartTime?.seconds ? globalStartTime.seconds * 1000 : globalStartTime.toDate().getTime();
@@ -193,9 +197,6 @@ export default function MobileStudentDashboard() {
             }
 
             // CORE LOGIC: Take the LATEST time as the effective start
-            // If Global(10:00) vs Team(11:00) -> Use Team(11:00)
-            // This means: If team was already there -> Timer starts from globalStartTime
-            //            If team joins LATE -> Timer starts from THEIR createdAt time
             const effectiveStartTime = Math.max(globalStartMs, teamJoinMs);
 
             const diff = now - effectiveStartTime;
@@ -206,27 +207,41 @@ export default function MobileStudentDashboard() {
             } else {
                 setTimer(formatTime(diff));
             }
-        }, 1000);
+        };
+
+        // Initial call
+        updateTimer();
+
+        // If finished, stop updating
+        if (teamFinishedAt) return;
+
+        const interval = setInterval(updateTimer, 1000);
 
         return () => clearInterval(interval);
-    }, [isGameActive, globalStartTime, teamJoinedAt]);
+    }, [isGameActive, globalStartTime, teamJoinedAt, teamFinishedAt]);
 
     const theme = MOBILE_THEMES[user?.house || 'Default'] || MOBILE_THEMES['Default'];
     // Normalize Stage: If 0 (Legacy/Not Started), treat as 1 (Start).
     const logicalStage = currentStage && currentStage > 0 ? currentStage : 1;
     const displayStage = logicalStage;
-    const currentClue = (user?.path && CLUE_DATA[user.path]) ? (CLUE_DATA[user.path][displayStage] || "Wait for the next instruction...") : "Loading...";
+    const normalizedPath = user?.path?.toLowerCase() as keyof typeof CLUE_DATA;
+    const currentClue = (normalizedPath && CLUE_DATA[normalizedPath]) ? (CLUE_DATA[normalizedPath][displayStage] || "Wait for the next instruction...") : "Loading...";
 
 
 
-    // --- HANDLERS ---
     // --- HANDLERS ---
     // --- HANDLERS ---
     const isProcessing = React.useRef(false);
+    const lastScanTime = React.useRef(0); // Cooldown Ref
 
     const handleScan = async (rawValue: string) => {
-        // 0. PREVENT DOUBLE SCANS
+        // 0. PREVENT DOUBLE SCANS & COOLDOWN
+        const now = Date.now();
+        if (now - lastScanTime.current < 3000) return; // 3 Seconds Cooldown
+
         if (!rawValue || !user || !isGameActive || isProcessing.current) return;
+
+        lastScanTime.current = now; // Update scan time
 
         try {
             // 1. PARSE DATA STRICTLY
@@ -278,15 +293,28 @@ export default function MobileStudentDashboard() {
             if (scannedStage === 5) {
                 setShowFinale(true); // Show Animation IMMEDIATELY
 
-                // Update DB in background
-                updateDoc(doc(db, "teams", user.teamId), {
-                    current_stage: 6,
-                    status: 'finished',
-                    finishedAt: serverTimestamp(),
-                    isFinished: true
-                }).catch(err => console.error(err));
+                // Update DB in background using Transaction for safety
+                try {
+                    await runTransaction(db, async (transaction) => {
+                        const teamRef = doc(db, "teams", user.teamId);
+                        const teamDoc = await transaction.get(teamRef);
+                        if (!teamDoc.exists()) throw new Error("Team not found");
 
-                return; // STOP Here
+                        const currentScore = teamDoc.data().score || 0;
+
+                        transaction.update(teamRef, {
+                            current_stage: 6,
+                            status: 'finished',
+                            finishedAt: serverTimestamp(),
+                            isFinished: true,
+                            score: currentScore + 20 // Explicit calculation
+                        });
+                    });
+                } catch (e) {
+                    console.error("Finale Transaction Error", e);
+                }
+
+                return; // STOP EXECUTION
             }
 
             setTimeout(async () => {

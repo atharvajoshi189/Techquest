@@ -77,29 +77,29 @@ const CLUE_DATA = {
         1: "I used to zoom on the road, now I stand still and carry your food. Find me where wheels meet meals! ",
         2: "Standing proud for every techie, This place welcomes you politely. ",
         3: "Where answers end and marks begin — Seek the cell that judges if you lose or win. ",
-        4: "Engines roar, then fall to hush, Here they wait without a rush. Find your clue among the lanes.",
-        5: "Dribble, pass, shoot… and score! Find the place with a painted floor."
+        4: "Engines roar, then fall to hush, Here they wait with two wheels without a rush. Find your clue among the lanes.",
+        5: "A Christmas tree standing tall and bright,\nOutside Block B, a festive sight.\nWith lights and gifts in branches free,\nFind the clue where it loves to be"
     } as Record<number, string>,
     beta: {
         1: "A plate of noodles and a drink so cool, A poster here makes you drool.",
         2: "I’m the hub where minds huddle — find me! ",
-        3: "Not a classroom, not a mall, yet many dreams begin here small, wehere help is granted to those who try your treassure moves where futures fly. ",
+        3: " Where journeys begin with a slip or a check,Two tech gurus speak from the wall at your neck.Not the buses outside, but the desk you must seek Your next clue waits where the quotes boldly speak.",
         4: "I stand by the road, round and tall, Show you yourself, no glass hall. Plants around me.",
-        5: "Under my giant metal crown, Athletes cheer and never frown... Come here — where champions play! "
+        5: "Under my giant metal crown, Athletes cheer and never frown... Come here — where champions play! Find me at the entrance gateway "
     } as Record<number, string>,
     gamma: {
         1: "He knows every face, he knows every name, He guards your path each day the same. Where journeys begin and strangers wait, Your next clue rests with the man at the gate..",
         2: "I point the way but never walked , I speak direction without talk. ",
         3: "Where silence rules and pages glide, Your next clue waits where readers hide.",
-        4: "I am marked with lines but not a notebook I hold two nets yet catch no fish./n Seek me where whistle rule the air , here clue awaits where players dare!",
+        4: "Where guidance waits and work is planned,\nOutside SADC, the clues now stand.\nNot inside halls where papers stay,\nLook just beyond to find your way.",
         5: "Always stand in front of canteen but only get waste to eat."
     } as Record<number, string>,
     delta: {
         1: "Where codes begin and concepts load, A board displays the club you chose. Events and achievements proudly stand— Your next clue waits on this zenith land.",
-        2: "A stage with screen where we showcase your talent. Find where I am!",
+        2: "Where teachers sit for a peaceful bite,\nAway from students and all the light.\nFind the spot where faculty eat\nYour hidden clue waits beneath a seat.",
         3: "Inside, Ashwa Riders shape with might; Outside, calm replaces light. Seek the seat that sways with grace— Your hidden clue is in that place.",
         4: "Where IT minds guide every day, Their staff room stands along the way. But don’t step in—stay just outside, There your next hidden clues reside.",
-        5: "I give shadow in the sun and place to sit and to cheer like audience and have fun!"
+        5: "I give shadow in the sun and place to sit and to cheer like audience and have fun during gamesf!"
     } as Record<number, string>,
     charlie: {
         1: "Where guiding hearts quietly stay, The home of our fathers leads the way. Not inside—your clue is just outside— Seek the spot where wisdom seems to reside.",
@@ -111,22 +111,22 @@ const CLUE_DATA = {
     bravo: {
         1: "Beneath the yellow Lipton sign, Where orange walls and queues align, A tiny window serves its taste— Find this stall, your clue’s in place.",
         2: "Where tools ring loud and sparks may fly, Where ideas are built, not just passed by. Seek the place where machines awake— Your next clue waits where makers make",
-        3: "I watch the space where A meets B, A frame of red in walls of yellow glee. I look upon the corner where you sit, With many dark glass squares, the shadows knit.",
+        3: "The Pallotti statue stands calm and true,Guarded by green plants fresh with dew.In open space, not hidden by wall,Find the next clue where silence calls.",
         4: "Where data and achievements proudly stand, A colourful board made by a clever hand. Right outside the DS staffroom door, That’s the place you’re looking for.",
         5: "Look for the little pink box on the wall, It sits beneath the dark window for all. It holds a long hose to help put out flame, Find this spot between Block A and B for the game."
     } as Record<number, string>,
     theta: {
         1: "Close to tools but calm and neat, A never-ending place to sit. Search the sign that has no end— Your next clue waits where curves bend.",
         2: "I rise in steps but carry none, I lead somewhere yet lead to none. Search Block B where knowledge stays— Your treasure waits on unused ways.",
-        3: "Behind a desk of calm command, A guiding force for every plan. Look for the place where wisdom leads— Your treasure moves where order breeds",
-        4: "No chalk, no class, yet teachers stand, Captured still by a careful hand. Seek the wall where wisdom stays— Your next clue waits in framed displays",
-        5: "Resumes rise and interviews start, This place prepares you for your part. Seek the room where goals align— Your next clue waits where careers shine"
+        3: "Behind a desk of calm command, A guiding force for every plan. Look for the place where wisdom leads,all the decision of college is taken here— Your clue moves where order breeds",
+        4: "No chalk, no class, yet teachers stand, Captured still by a careful hand. Seek the wall where wisdom stays— Your next clue waits in framed displays in B block.",
+        5: "Resumes rise and interviews start, CDC place prepares you for your part. Seek the room where goals align— Your next clue waits where careers shine"
     } as Record<number, string>,
     omega: {
-        1: "A computer science branch that deals with bussiness management system .",
+        1: "A computer science branch that deals with bussiness management system",
         2: "a frame in block A that sync with theme of technex.",
         3: "I go up and down but never walk, I carry many without a talk. Find your clue where buttons decide— The silent helper by your side.",
-        4: "Relativity and E=mc^2 once he taught, Through time and space his ideas fought. Look for the face that changed the view— Your next clue waits where thoughts break through",
+        4: "Relativity and E=mc^2 once he taught, Through time and space his ideas fought. Look for the face that changed the view— Your next clue waits in A block where thoughts break through",
         5: "Where signals travel and circuits speak, Where logic flows both strong and sleek. Find your clue where waves are sent— The ETC wing is where you’re meant."
     } as Record<number, string>,
 };
@@ -145,6 +145,7 @@ export default function StudentDashboard() {
     const [isGameActive, setIsGameActive] = useState(false);
     const [globalStartTime, setGlobalStartTime] = useState<any>(null);
     const [teamJoinedAt, setTeamJoinedAt] = useState<number | null>(null);
+    const [teamFinishedAt, setTeamFinishedAt] = useState<any>(null);
     const [timer, setTimer] = useState("00:00:00");
 
     // UI State
@@ -196,11 +197,13 @@ export default function StudentDashboard() {
                 setCurrentStage(data.current_stage || 0);
                 setGameStatus(data.status || 'active');
                 setRound2Password(data.round2_password || '');
-                // Ensure retrieval of startedAt/createdAt.
                 // Priority: Use createdAt (ServerTimestamp) if available, else startedAt (Legacy Number)
                 const joinTime = data.createdAt || data.startedAt;
                 if (joinTime) {
                     setTeamJoinedAt(joinTime);
+                }
+                if (data.finishedAt) {
+                    setTeamFinishedAt(data.finishedAt);
                 }
             }
         });
@@ -216,8 +219,8 @@ export default function StudentDashboard() {
             return;
         }
 
-        const interval = setInterval(() => {
-            const now = Date.now();
+        const updateTimer = () => {
+            const now = teamFinishedAt ? (teamFinishedAt.seconds ? teamFinishedAt.seconds * 1000 : teamFinishedAt.toDate().getTime()) : Date.now();
 
             // Convert Firestore Timestamps to Milliseconds
             const globalStartMs = globalStartTime?.seconds ? globalStartTime.seconds * 1000 : globalStartTime.toDate().getTime();
@@ -230,9 +233,6 @@ export default function StudentDashboard() {
             }
 
             // CORE LOGIC: Take the LATEST time as the effective start
-            // If Global(10:00) vs Team(11:00) -> Use Team(11:00)
-            // This means: If team was already there -> Timer starts from globalStartTime
-            //            If team joins LATE -> Timer starts from THEIR createdAt time
             const effectiveStartTime = Math.max(globalStartMs, teamJoinMs);
 
             const diff = now - effectiveStartTime;
@@ -243,10 +243,18 @@ export default function StudentDashboard() {
             } else {
                 setTimer(formatTime(diff));
             }
-        }, 1000);
+        };
+
+        // Initial call
+        updateTimer();
+
+        // If finished, we don't need an interval, just set it once (which we did above) and return.
+        if (teamFinishedAt) return;
+
+        const interval = setInterval(updateTimer, 1000);
 
         return () => clearInterval(interval);
-    }, [isGameActive, globalStartTime, teamJoinedAt]);
+    }, [isGameActive, globalStartTime, teamJoinedAt, teamFinishedAt]);
 
     // 3. Derived State
     const theme = THEME_CONFIG[user?.house || 'Default'] || THEME_CONFIG['Default'];
@@ -255,8 +263,9 @@ export default function StudentDashboard() {
     // Normalize Stage: If 0 (Legacy/Not Started), treat as 1 (Start).
     const logicalStage = currentStage && currentStage > 0 ? currentStage : 1;
     const displayStage = logicalStage;
-    const currentClue = (user?.path && CLUE_DATA[user.path])
-        ? (CLUE_DATA[user.path][displayStage] || "Wait for the next instruction...")
+    const normalizedPath = user?.path?.toLowerCase() as keyof typeof CLUE_DATA;
+    const currentClue = (normalizedPath && CLUE_DATA[normalizedPath])
+        ? (CLUE_DATA[normalizedPath][displayStage] || "Wait for the next instruction...")
         : "Loading Destiny...";
 
 
@@ -264,9 +273,15 @@ export default function StudentDashboard() {
     // Handlers
     // Handlers
     const isProcessing = React.useRef(false);
+    const lastScanTime = React.useRef(0);
 
     const handleScan = async (rawValue: string) => {
+        const now = Date.now();
+        if (now - lastScanTime.current < 3000) return; // 3s Cooldown
+
         if (!rawValue || !user || !isGameActive || isProcessing.current) return;
+
+        lastScanTime.current = now;
 
         try {
             // 1. Attempts to Parse JSON (Strict Requirement)
@@ -322,15 +337,28 @@ export default function StudentDashboard() {
                 setShowFinale(true); // Show Animation IMMEDIATELY
                 setScanFeedback({ type: 'success', msg: 'Victory!' }); // Feedback
 
-                // Update DB in background (mark as finished)
-                updateDoc(doc(db, "teams", user.teamId), {
-                    current_stage: 6,
-                    status: 'finished', // Ensure status is marked finished
-                    finishedAt: serverTimestamp(),
-                    isFinished: true // Explicit flag if needed
-                }).catch(err => console.error("Finale Update Error", err));
+                // Update DB in background using Transaction for safety
+                try {
+                    await runTransaction(db, async (transaction) => {
+                        const teamRef = doc(db, "teams", user.teamId);
+                        const teamDoc = await transaction.get(teamRef);
+                        if (!teamDoc.exists()) throw new Error("Team not found");
 
-                return; // STOP EXECUTION - Do not run standard success logic
+                        const currentScore = teamDoc.data().score || 0;
+
+                        transaction.update(teamRef, {
+                            current_stage: 6,
+                            status: 'finished',
+                            finishedAt: serverTimestamp(),
+                            isFinished: true,
+                            score: currentScore + 20 // Explicit calculation
+                        });
+                    });
+                } catch (e) {
+                    console.error("Finale Transaction Error", e);
+                }
+
+                return; // STOP EXECUTION
             }
 
             // --- STANDARD SUCCESS ---
