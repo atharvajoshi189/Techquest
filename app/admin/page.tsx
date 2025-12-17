@@ -15,6 +15,7 @@ import {
     writeBatch,
     where,
     updateDoc,
+    deleteDoc,
     getDocs // Added for Smart Allocation
 } from "firebase/firestore";
 import { MagicScroll } from '@/components/admin/MagicScroll';
@@ -78,6 +79,17 @@ export default function AdminPage() {
     // --- Authentication State ---
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [adminPasswordInput, setAdminPasswordInput] = useState('');
+
+    const handleDeleteTeam = async (teamId: string, teamName: string) => {
+        if (confirm(`Are you sure you want to PERMANENTLY delete team "${teamName}"? This cannot be undone.`)) {
+            try {
+                await deleteDoc(doc(db, "teams", teamId));
+            } catch (err) {
+                console.error("Error removing team:", err);
+                alert("Failed to delete team. See console.");
+            }
+        }
+    };
 
     // --- Effects (Logic Preserved) ---
     useEffect(() => {
@@ -527,7 +539,13 @@ export default function AdminPage() {
                                                                 </div>
                                                                 <div className="flex flex-col gap-1 text-[8px] md:text-[10px] uppercase font-bold text-[#8d6e63]">
                                                                     <span>Code: {team.passcode}</span>
-
+                                                                    <button
+                                                                        onClick={() => handleDeleteTeam(team.id, team.name)}
+                                                                        className="mt-1 flex items-center justify-end gap-1 text-red-500 hover:text-red-700 transition-colors"
+                                                                        title="Delete Team"
+                                                                    >
+                                                                        <span>🗑️ DELETE</span>
+                                                                    </button>
                                                                 </div>
                                                             </div>
                                                         </motion.div>
