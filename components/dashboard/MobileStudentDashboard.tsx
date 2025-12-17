@@ -141,6 +141,17 @@ export default function MobileStudentDashboard() {
     useEffect(() => {
         if (!user?.teamId) return;
 
+        // PRELOAD ASSETS FOR FINALE
+        const preloadImages = [
+            "/assets/frag1.png", "/assets/frag2.png", "/assets/frag3.png",
+            "/assets/frag4.png", "/assets/frag5.png", "/assets/elder_wand_full.png",
+            "/assets/space-bg.jpg"
+        ];
+        preloadImages.forEach((src) => {
+            const img = new Image();
+            img.src = src;
+        });
+
         const unsubConfig = onSnapshot(doc(db, "config", "metadata"), (d) => {
             if (d.exists()) {
                 const data = d.data();
@@ -231,16 +242,17 @@ export default function MobileStudentDashboard() {
 
     // --- HANDLERS ---
     // --- HANDLERS ---
-    const isProcessing = React.useRef(false);
+    const [isProcessingState, setIsProcessingState] = useState(false);
     const lastScanTime = React.useRef(0); // Cooldown Ref
 
     const handleScan = async (rawValue: string) => {
         // 0. PREVENT DOUBLE SCANS & COOLDOWN
         const now = Date.now();
-        if (now - lastScanTime.current < 3000) return; // 3 Seconds Cooldown
+        if (now - lastScanTime.current < 2000) return; // 2 Seconds Cooldown (Adjusted)
 
-        if (!rawValue || !user || !isGameActive || isProcessing.current) return;
+        if (!rawValue || !user || !isGameActive || isProcessingState) return;
 
+        setIsProcessingState(true); // Lock UI immediately
         lastScanTime.current = now; // Update scan time
 
         try {
@@ -284,7 +296,7 @@ export default function MobileStudentDashboard() {
             if (currentTargetStage > 5) return;
 
             // 4. SUCCESS -> LOCK & UPDATE
-            isProcessing.current = true; // Lock immediately
+            // isProcessingState already true
             setScanFeedback({ type: 'success', msg: 'Correct Rune! Decrypting...' });
 
 
@@ -311,7 +323,9 @@ export default function MobileStudentDashboard() {
                         });
                     });
                 } catch (e) {
-                    console.error("Finale Transaction Error", e);
+                    // Silent fail or toast
+                } finally {
+                    setIsProcessingState(false);
                 }
 
                 return; // STOP EXECUTION
@@ -340,7 +354,6 @@ export default function MobileStudentDashboard() {
                         });
                     });
                 } catch (updateErr) {
-                    console.error("Firestore Update Failed:", updateErr);
                     if ((updateErr as Error).message === "STAGE_MISMATCH") {
                         setScanFeedback({ type: 'error', msg: 'Syncing... try again.' });
                     } else {
@@ -349,16 +362,16 @@ export default function MobileStudentDashboard() {
                 } finally {
                     // Release lock after safe delay
                     setTimeout(() => {
-                        isProcessing.current = false;
+                        setIsProcessingState(false);
                         setIsScanning(false);
                     }, 1500);
                 }
             }, 800);
 
         } catch (err) {
-            console.error("Scan Error", err);
             setScanFeedback({ type: 'error', msg: 'Invalid Rune Data' });
-            isProcessing.current = false;
+            // FORCE UNLOCK ON ERROR
+            setTimeout(() => setIsProcessingState(false), 2000);
         }
     };
 

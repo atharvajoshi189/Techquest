@@ -12,6 +12,7 @@ import useIsMobile from '@/hooks/useIsMobile';
 import MobileStudentDashboard from '@/components/dashboard/MobileStudentDashboard';
 import { GrandFinale } from '@/components/dashboard/GrandFinale';
 import { ElderWand } from '@/components/dashboard/ElderWand';
+import ErrorBoundary from '@/components/ui/ErrorBoundary';
 
 // --- Types ---
 interface UserSession {
@@ -272,15 +273,16 @@ export default function StudentDashboard() {
 
     // Handlers
     // Handlers
-    const isProcessing = React.useRef(false);
+    const [isProcessingState, setIsProcessingState] = useState(false);
     const lastScanTime = React.useRef(0);
 
     const handleScan = async (rawValue: string) => {
         const now = Date.now();
-        if (now - lastScanTime.current < 3000) return; // 3s Cooldown
+        if (now - lastScanTime.current < 2000) return; // 2s Cooldown
 
-        if (!rawValue || !user || !isGameActive || isProcessing.current) return;
+        if (!rawValue || !user || !isGameActive || isProcessingState) return;
 
+        setIsProcessingState(true);
         lastScanTime.current = now;
 
         try {
@@ -289,8 +291,8 @@ export default function StudentDashboard() {
             try {
                 payload = JSON.parse(rawValue);
             } catch {
-                console.error("QR Parse Failed:", rawValue);
                 setScanFeedback({ type: 'error', msg: 'Invalid Rune Format!' });
+                setIsProcessingState(false);
                 return;
             }
 
@@ -307,8 +309,9 @@ export default function StudentDashboard() {
                 setScanFeedback({ type: 'error', msg: `Wrong Path! You are ${userPath?.toUpperCase()}.` });
                 // Deduct points for wrong scan
                 if (currentStage > 0) {
-                    updateDoc(doc(db, "teams", user.teamId), { score: increment(-5) }).catch(console.error);
+                    updateDoc(doc(db, "teams", user.teamId), { score: increment(-5) }).catch(() => { });
                 }
+                setIsProcessingState(false);
                 return;
             }
 
@@ -321,13 +324,17 @@ export default function StudentDashboard() {
                 }
                 // Penalty
                 if (currentStage > 0) {
-                    updateDoc(doc(db, "teams", user.teamId), { score: increment(-5) }).catch(console.error);
+                    updateDoc(doc(db, "teams", user.teamId), { score: increment(-5) }).catch(() => { });
                 }
+                setIsProcessingState(false);
                 return;
             }
 
             // SAFETY
-            if (currentTargetStage > 5) return;
+            if (currentTargetStage > 5) {
+                setIsProcessingState(false);
+                return;
+            }
 
             // --- SUCCESS ---
 
@@ -355,7 +362,9 @@ export default function StudentDashboard() {
                         });
                     });
                 } catch (e) {
-                    console.error("Finale Transaction Error", e);
+                    // Silent fail
+                } finally {
+                    setIsProcessingState(false);
                 }
 
                 return; // STOP EXECUTION
@@ -390,7 +399,6 @@ export default function StudentDashboard() {
                         });
                     });
                 } catch (updateErr) {
-                    console.error("Firestore Update Failed", updateErr);
                     if ((updateErr as Error).message === "STAGE_MISMATCH") {
                         setScanFeedback({ type: 'error', msg: 'Syncing... try again.' });
                     } else {
@@ -398,16 +406,15 @@ export default function StudentDashboard() {
                     }
                 } finally {
                     setTimeout(() => {
-                        isProcessing.current = false;
+                        setIsProcessingState(false);
                         setIsScanning(false);
                     }, 1500);
                 }
             }, 800);
 
         } catch (err) {
-            console.error("Scan Error", err);
             setScanFeedback({ type: 'error', msg: 'The Lens is clouded... Try again.' });
-            isProcessing.current = false;
+            setTimeout(() => setIsProcessingState(false), 2000);
         }
     };
 
@@ -438,212 +445,214 @@ export default function StudentDashboard() {
     }
 
     return (
-        <div className={`min-h-screen relative overflow-hidden font-cinzel text-white transition-all duration-1000 ${theme.bgGradient}`}>
+        <ErrorBoundary>
+            <div className={`min-h-screen relative overflow-hidden font-cinzel text-white transition-all duration-1000 ${theme.bgGradient}`}>
 
-            {/* Background Texture Overlay */}
-            <div className="absolute inset-0 opacity-20 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] mix-blend-overlay" />
+                {/* Background Texture Overlay */}
+                <div className="absolute inset-0 opacity-20 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] mix-blend-overlay" />
 
 
-            {/* Main Content */}
-            {!showIntro && (
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="relative z-10 p-4 md:p-8 max-w-5xl mx-auto flex flex-col gap-4 md:gap-6 pb-20 md:pb-8"
-                >
+                {/* Main Content */}
+                {!showIntro && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="relative z-10 p-4 md:p-8 max-w-5xl mx-auto flex flex-col gap-4 md:gap-6 pb-20 md:pb-8"
+                    >
 
-                    {/* HEADER START (3-Column Grid) */}
-                    <div className={`fixed top-0 left-0 w-full h-24 z-50 bg-black/60 backdrop-blur-xl border-b border-white/10 grid grid-cols-3 px-8 items-center shadow-2xl transition-all duration-300`}>
+                        {/* HEADER START (3-Column Grid) */}
+                        <div className={`fixed top-0 left-0 w-full h-24 z-50 bg-black/60 backdrop-blur-xl border-b border-white/10 grid grid-cols-3 px-8 items-center shadow-2xl transition-all duration-300`}>
 
-                        {/* 1. LEFT: Identity */}
-                        <div className="flex flex-col items-start">
-                            <span className="text-xs text-cyan-400 tracking-[0.2em] uppercase mb-1">Welcome Champion</span>
-                            <h1 className="text-2xl font-bold text-white tracking-wider drop-shadow-md">{user.teamName}</h1>
-                        </div>
-
-                        {/* 2. CENTER: The Master Clock */}
-                        <div className="flex flex-col items-center justify-center">
-                            <span className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Mission Timer</span>
-                            <div className="text-5xl font-mono font-bold text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.6)]">
-                                {timer}
-                            </div>
-                        </div>
-
-                        {/* 3. RIGHT: Status */}
-                        <div className="flex flex-col items-end gap-2">
-                            {/* House Badge */}
-                            <div className="px-4 py-1 rounded-full bg-white/10 border border-white/20 backdrop-blur-md">
-                                <span className="text-sm font-bold text-white tracking-widest uppercase">
-                                    {user.house}
-                                </span>
+                            {/* 1. LEFT: Identity */}
+                            <div className="flex flex-col items-start">
+                                <span className="text-xs text-cyan-400 tracking-[0.2em] uppercase mb-1">Welcome Champion</span>
+                                <h1 className="text-2xl font-bold text-white tracking-wider drop-shadow-md">{user.teamName}</h1>
                             </div>
 
-                            {/* Path Badge Hidden */}
-                            {/* <div className="flex items-center gap-2">
+                            {/* 2. CENTER: The Master Clock */}
+                            <div className="flex flex-col items-center justify-center">
+                                <span className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Mission Timer</span>
+                                <div className="text-5xl font-mono font-bold text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.6)]">
+                                    {timer}
+                                </div>
+                            </div>
+
+                            {/* 3. RIGHT: Status */}
+                            <div className="flex flex-col items-end gap-2">
+                                {/* House Badge */}
+                                <div className="px-4 py-1 rounded-full bg-white/10 border border-white/20 backdrop-blur-md">
+                                    <span className="text-sm font-bold text-white tracking-widest uppercase">
+                                        {user.house}
+                                    </span>
+                                </div>
+
+                                {/* Path Badge Hidden */}
+                                {/* <div className="flex items-center gap-2">
                                 <span className="text-xs text-gray-400 uppercase">Path Assigned:</span>
                                 <span className="text-xs font-bold text-cyan-300 uppercase tracking-widest">
                                     {user.path}
                                 </span>
                             </div> */}
-                        </div>
-                    </div>
-                    {/* HEADER END */}
-
-                    {/* SPACER for Fixed Header */}
-                    <div className="h-24 w-full" />
-
-                    {/* Game Status or content */}
-                    {!isGameActive ? (
-                        <div className="text-center py-10 md:py-20">
-                            <h2 className="text-xl md:text-3xl font-bold animate-pulse text-yellow-500">The Tournament is Paused</h2>
-                            <p className="opacity-60 mt-2 text-sm md:text-base">The Headmaster is speaking...</p>
-                        </div>
-                    ) : gameStatus === 'finished' ? (
-                        <div className="p-4 md:p-8 rounded-2xl bg-black/60 border border-yellow-500 text-center space-y-4 shadow-[0_0_50px_rgba(234,179,8,0.3)]">
-                            <h1 className="text-3xl md:text-5xl font-bold text-yellow-400">CONGRATULATIONS</h1>
-                            <p className="text-base md:text-xl">You have successfully completed Round-1.</p>
-                            <p className="text-white/60 text-sm">The results will be announced soon...</p>
-                        </div>
-                    ) : (
-                        // NORMAL GAMEPLAY
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-
-                            {/* Left: Quest Journal */}
-                            <div className="space-y-4 md:space-y-6">
-                                <div className="w-full">
-                                    <QuestJournal
-                                        clue={currentClue}
-                                        stage={displayStage}
-                                        house={user.house}
-                                    />
-                                </div>
-                                {/* <InventoryPouch revealedPassword="" /> */}
-
-                                {/* The Elder Wand - Fragments */}
-                                <section>
-                                    <ElderWand currentStage={currentStage} />
-                                </section>
                             </div>
+                        </div>
+                        {/* HEADER END */}
 
-                            {/* Right: Actions / Scanner */}
-                            <div className="flex flex-col gap-4 md:gap-6">
+                        {/* SPACER for Fixed Header */}
+                        <div className="h-24 w-full" />
 
-                                <div className={`flex-1 min-h-[200px] md:min-h-[300px] rounded-2xl bg-black/30 border ${theme.border} flex items-center justify-center relative overflow-hidden group hover:bg-black/40 transition-colors cursor-pointer active:scale-95 duration-200`}
-                                    onClick={handleStartScanning}
-                                >
-                                    <div className={`absolute inset-0 bg-gradient-to-t from-${theme.accent.split('-')[1]}-900/20 to-transparent`} />
-                                    <div className="text-center z-10 space-y-2 md:space-y-4 p-4">
-                                        <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white/10 flex items-center justify-center mx-auto backdrop-blur-md border border-white/20 group-hover:scale-110 transition-transform">
-                                            <span className="text-3xl md:text-4xl">📷</span>
+                        {/* Game Status or content */}
+                        {!isGameActive ? (
+                            <div className="text-center py-10 md:py-20">
+                                <h2 className="text-xl md:text-3xl font-bold animate-pulse text-yellow-500">The Tournament is Paused</h2>
+                                <p className="opacity-60 mt-2 text-sm md:text-base">The Headmaster is speaking...</p>
+                            </div>
+                        ) : gameStatus === 'finished' ? (
+                            <div className="p-4 md:p-8 rounded-2xl bg-black/60 border border-yellow-500 text-center space-y-4 shadow-[0_0_50px_rgba(234,179,8,0.3)]">
+                                <h1 className="text-3xl md:text-5xl font-bold text-yellow-400">CONGRATULATIONS</h1>
+                                <p className="text-base md:text-xl">You have successfully completed Round-1.</p>
+                                <p className="text-white/60 text-sm">The results will be announced soon...</p>
+                            </div>
+                        ) : (
+                            // NORMAL GAMEPLAY
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+
+                                {/* Left: Quest Journal */}
+                                <div className="space-y-4 md:space-y-6">
+                                    <div className="w-full">
+                                        <QuestJournal
+                                            clue={currentClue}
+                                            stage={displayStage}
+                                            house={user.house}
+                                        />
+                                    </div>
+                                    {/* <InventoryPouch revealedPassword="" /> */}
+
+                                    {/* The Elder Wand - Fragments */}
+                                    <section>
+                                        <ElderWand currentStage={currentStage} />
+                                    </section>
+                                </div>
+
+                                {/* Right: Actions / Scanner */}
+                                <div className="flex flex-col gap-4 md:gap-6">
+
+                                    <div className={`flex-1 min-h-[200px] md:min-h-[300px] rounded-2xl bg-black/30 border ${theme.border} flex items-center justify-center relative overflow-hidden group hover:bg-black/40 transition-colors cursor-pointer active:scale-95 duration-200`}
+                                        onClick={handleStartScanning}
+                                    >
+                                        <div className={`absolute inset-0 bg-gradient-to-t from-${theme.accent.split('-')[1]}-900/20 to-transparent`} />
+                                        <div className="text-center z-10 space-y-2 md:space-y-4 p-4">
+                                            <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white/10 flex items-center justify-center mx-auto backdrop-blur-md border border-white/20 group-hover:scale-110 transition-transform">
+                                                <span className="text-3xl md:text-4xl">📷</span>
+                                            </div>
+                                            <h3 className="text-lg md:text-xl font-bold tracking-widest">SCAN RUNE</h3>
+                                            <p className="text-[10px] md:text-xs opacity-50 px-4 md:px-8">Find the QR code at location #{displayStage} <br /> ({user.path.toUpperCase()} PATH)</p>
                                         </div>
-                                        <h3 className="text-lg md:text-xl font-bold tracking-widest">SCAN RUNE</h3>
-                                        <p className="text-[10px] md:text-xs opacity-50 px-4 md:px-8">Find the QR code at location #{displayStage} <br /> ({user.path.toUpperCase()} PATH)</p>
                                     </div>
                                 </div>
+
+                            </div>
+                        )}
+                    </motion.div>
+                )}
+
+                {/* FULL SCREEN SCANNER OVERLAY */}
+                <AnimatePresence>
+                    {isScanning && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-4 backdrop-blur-sm"
+                        >
+                            {/* Close Button Top Right */}
+                            <button
+                                type="button"
+                                onClick={() => setIsScanning(false)}
+                                aria-label="Close scanner"
+                                className="absolute top-8 right-8 text-white/80 hover:text-white transition-colors p-2"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 md:h-10 md:w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+
+                            <h2 className="text-xl md:text-2xl mb-4 md:mb-8 tracking-[0.3em] text-white/80 font-cinzel text-center mt-8">ALIGN THE RUNE</h2>
+
+                            {/* Scanner Container */}
+                            <div className={`relative w-full max-w-[300px] md:max-w-sm aspect-square rounded-xl overflow-hidden border-4 ${theme.border} shadow-[0_0_50px_rgba(255,255,255,0.1)]`}>
+                                <Scanner
+                                    onScan={(res) => {
+                                        if (res && res.length > 0) {
+                                            handleScan(res[0].rawValue);
+                                        }
+                                    }}
+                                    scanDelay={500}
+                                    paused={scanFeedback.type === 'success'}
+                                />
+
+                                {/* Overlay Frame (Magical Lens) */}
+                                <div className="absolute inset-0 border-[30px] md:border-[40px] border-black/60 z-10 pointer-events-none" />
+
+                                {/* Corner Markers */}
+                                <div className="absolute inset-4 pointer-events-none z-20 opacity-60">
+                                    <div className={`absolute top-0 left-0 w-6 h-6 md:w-8 md:h-8 border-t-4 border-l-4 ${theme.border.replace('border-', 'border-')}`} />
+                                    <div className={`absolute top-0 right-0 w-6 h-6 md:w-8 md:h-8 border-t-4 border-r-4 ${theme.border.replace('border-', 'border-')}`} />
+                                    <div className={`absolute bottom-0 left-0 w-6 h-6 md:w-8 md:h-8 border-b-4 border-l-4 ${theme.border.replace('border-', 'border-')}`} />
+                                    <div className={`absolute bottom-0 right-0 w-6 h-6 md:w-8 md:h-8 border-b-4 border-r-4 ${theme.border.replace('border-', 'border-')}`} />
+                                </div>
+
+                                {/* Scanning Laser Line */}
+                                <motion.div
+                                    animate={{ top: ['10%', '90%', '10%'] }}
+                                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                                    className="absolute left-[10%] right-[10%] h-[2px] bg-red-500/80 shadow-[0_0_10px_red] z-20 pointer-events-none"
+                                />
                             </div>
 
-                        </div>
+                            {/* Close Button Bottom (Mobile Friendly) */}
+                            <button
+                                onClick={() => setIsScanning(false)}
+                                className="mt-8 px-8 py-3 bg-white/10 border border-white/20 rounded-full font-bold tracking-widest hover:bg-white/20 transition-all uppercase text-xs md:text-sm"
+                            >
+                                Close Magical Lens
+                            </button>
+
+                            {/* Feedback Text */}
+                            <div className="mt-8 h-12 text-center px-4">
+                                {scanFeedback.type === 'idle' && <p className="animate-pulse text-white/50 text-base md:text-lg">Searching for Signal...</p>}
+                                {scanFeedback.type === 'success' && <p className="text-green-400 text-lg md:text-xl font-bold font-cinzel drop-shadow-md">✨ {scanFeedback.msg}</p>}
+                                {scanFeedback.type === 'error' && <p className="text-red-400 text-sm md:text-xl font-bold font-cinzel drop-shadow-md whitespace-pre-wrap">⚠️ {scanFeedback.msg}</p>}
+                            </div>
+
+                        </motion.div>
                     )}
-                </motion.div>
-            )}
+                </AnimatePresence>
 
-            {/* FULL SCREEN SCANNER OVERLAY */}
-            <AnimatePresence>
-                {isScanning && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-4 backdrop-blur-sm"
-                    >
-                        {/* Close Button Top Right */}
-                        <button
-                            type="button"
-                            onClick={() => setIsScanning(false)}
-                            aria-label="Close scanner"
-                            className="absolute top-8 right-8 text-white/80 hover:text-white transition-colors p-2"
+                {/* GRAND FINALE ANIMATION */}
+                {showFinale && <GrandFinale />}
+
+                {/* FINAL MODAL UPDATED */}
+                <AnimatePresence>
+                    {showFinalModal && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center space-y-6"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 md:h-10 md:w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
+                            <h1 className="text-4xl md:text-5xl font-bold text-yellow-500 tracking-widest drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]">
+                                CONGRATULATIONS
+                            </h1>
+                            <p className="text-white/80 text-xl">
+                                You have successfully completed Round-1
+                            </p>
+                            <p className="text-white/60 text-lg animate-pulse">
+                                The results will be announced soon...
+                            </p>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
-                        <h2 className="text-xl md:text-2xl mb-4 md:mb-8 tracking-[0.3em] text-white/80 font-cinzel text-center mt-8">ALIGN THE RUNE</h2>
-
-                        {/* Scanner Container */}
-                        <div className={`relative w-full max-w-[300px] md:max-w-sm aspect-square rounded-xl overflow-hidden border-4 ${theme.border} shadow-[0_0_50px_rgba(255,255,255,0.1)]`}>
-                            <Scanner
-                                onScan={(res) => {
-                                    if (res && res.length > 0) {
-                                        handleScan(res[0].rawValue);
-                                    }
-                                }}
-                                scanDelay={500}
-                                paused={scanFeedback.type === 'success'}
-                            />
-
-                            {/* Overlay Frame (Magical Lens) */}
-                            <div className="absolute inset-0 border-[30px] md:border-[40px] border-black/60 z-10 pointer-events-none" />
-
-                            {/* Corner Markers */}
-                            <div className="absolute inset-4 pointer-events-none z-20 opacity-60">
-                                <div className={`absolute top-0 left-0 w-6 h-6 md:w-8 md:h-8 border-t-4 border-l-4 ${theme.border.replace('border-', 'border-')}`} />
-                                <div className={`absolute top-0 right-0 w-6 h-6 md:w-8 md:h-8 border-t-4 border-r-4 ${theme.border.replace('border-', 'border-')}`} />
-                                <div className={`absolute bottom-0 left-0 w-6 h-6 md:w-8 md:h-8 border-b-4 border-l-4 ${theme.border.replace('border-', 'border-')}`} />
-                                <div className={`absolute bottom-0 right-0 w-6 h-6 md:w-8 md:h-8 border-b-4 border-r-4 ${theme.border.replace('border-', 'border-')}`} />
-                            </div>
-
-                            {/* Scanning Laser Line */}
-                            <motion.div
-                                animate={{ top: ['10%', '90%', '10%'] }}
-                                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                                className="absolute left-[10%] right-[10%] h-[2px] bg-red-500/80 shadow-[0_0_10px_red] z-20 pointer-events-none"
-                            />
-                        </div>
-
-                        {/* Close Button Bottom (Mobile Friendly) */}
-                        <button
-                            onClick={() => setIsScanning(false)}
-                            className="mt-8 px-8 py-3 bg-white/10 border border-white/20 rounded-full font-bold tracking-widest hover:bg-white/20 transition-all uppercase text-xs md:text-sm"
-                        >
-                            Close Magical Lens
-                        </button>
-
-                        {/* Feedback Text */}
-                        <div className="mt-8 h-12 text-center px-4">
-                            {scanFeedback.type === 'idle' && <p className="animate-pulse text-white/50 text-base md:text-lg">Searching for Signal...</p>}
-                            {scanFeedback.type === 'success' && <p className="text-green-400 text-lg md:text-xl font-bold font-cinzel drop-shadow-md">✨ {scanFeedback.msg}</p>}
-                            {scanFeedback.type === 'error' && <p className="text-red-400 text-sm md:text-xl font-bold font-cinzel drop-shadow-md whitespace-pre-wrap">⚠️ {scanFeedback.msg}</p>}
-                        </div>
-
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* GRAND FINALE ANIMATION */}
-            {showFinale && <GrandFinale />}
-
-            {/* FINAL MODAL UPDATED */}
-            <AnimatePresence>
-                {showFinalModal && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center space-y-6"
-                    >
-                        <h1 className="text-4xl md:text-5xl font-bold text-yellow-500 tracking-widest drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]">
-                            CONGRATULATIONS
-                        </h1>
-                        <p className="text-white/80 text-xl">
-                            You have successfully completed Round-1
-                        </p>
-                        <p className="text-white/60 text-lg animate-pulse">
-                            The results will be announced soon...
-                        </p>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-        </div>
+            </div>
+        </ErrorBoundary>
     );
 }
