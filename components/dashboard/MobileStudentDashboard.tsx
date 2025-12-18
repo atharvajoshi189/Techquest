@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Scanner } from '@yudiel/react-qr-scanner';
@@ -176,10 +177,14 @@ export default function MobileStudentDashboard() {
                 if (data.finishedAt) {
                     setTeamFinishedAt(data.finishedAt);
                 }
-                // Check if already finished to show modal if refreshing? 
-                // Suggestion: Only show modal on explicit action or if status is newly finished?
-                // For now, let's keep it manual trigger via gatekeeper for the "Wow" effect, unless already finished.
-                // If finished, maybe show smaller victory card as currently implemented.
+
+                // FORCE REFRESH IF DISQUALIFIED
+                if (data.isDisqualified) {
+                    // If we want the parent to handle it, we can just rely on state?
+                    // But MobileDashboard seems standalone in logic sometimes.
+                    // Parent page.tsx will unmount us if it detects it.
+                    // But let's be safe.
+                }
             }
         });
 
@@ -230,6 +235,55 @@ export default function MobileStudentDashboard() {
 
         return () => clearInterval(interval);
     }, [isGameActive, globalStartTime, teamJoinedAt, teamFinishedAt]);
+
+    // 4. ANTI-CHEAT: THREE-STRIKE SYSTEM (Mobile)
+    const violationCount = useRef(0);
+
+    useEffect(() => {
+        // User check
+        if (!user?.teamId) return;
+
+        // A. TAB SWITCH LISTENER
+        const handleVisibilityChange = async () => {
+            if (document.hidden) {
+                violationCount.current += 1;
+
+                if (violationCount.current === 1) {
+                    toast.error("⚠️ WARNING: Don't switch tabs/apps! Next violation = DISQUALIFICATION.", { duration: 5000, icon: '🚨' });
+                } else if (violationCount.current >= 2) {
+                    try {
+                        await updateDoc(doc(db, 'teams', user.teamId), { isDisqualified: true });
+                    } catch (e) { console.error(e); }
+                }
+            }
+        };
+
+        // B. BACK BUTTON LISTENER
+        const handleBackAttempt = async () => {
+            try {
+                await updateDoc(doc(db, 'teams', user.teamId), { isDisqualified: true });
+            } catch (e) { console.error(e); }
+        };
+
+        const lockNavigation = () => {
+            window.history.pushState(null, document.title, window.location.href);
+        };
+        lockNavigation();
+
+        window.addEventListener('popstate', handleBackAttempt);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        // Prevent Context Menu
+        const handleContextMenu = (e: MouseEvent) => e.preventDefault();
+        document.addEventListener('contextmenu', handleContextMenu);
+
+
+        return () => {
+            window.removeEventListener('popstate', handleBackAttempt);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            document.removeEventListener('contextmenu', handleContextMenu);
+        };
+    }, [user?.teamId]);
 
     const theme = MOBILE_THEMES[user?.house || 'Default'] || MOBILE_THEMES['Default'];
     // Normalize Stage: If 0 (Legacy/Not Started), treat as 1 (Start).

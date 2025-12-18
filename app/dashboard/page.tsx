@@ -1,5 +1,6 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { toast, Toaster } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { IntroVideo } from '@/components/IntroVideo';
@@ -114,7 +115,7 @@ const CLUE_DATA = {
         2: "Where tools ring loud and sparks may fly, Where ideas are built, not just passed by. Seek the place where machines awake— Your next clue waits where makers make",
         3: "The Pallotti statue stands calm and true,Guarded by green plants fresh with dew.In open space, not hidden by wall,Find the next clue where silence calls.",
         4: "Where data and achievements proudly stand, A colourful board made by a clever hand. Right outside the DS staffroom door, That’s the place you’re looking for.",
-        5: "Look for the little pink box on the wall, It sits beneath the dark window for all. It holds a long hose to help put out flame, Find this spot between Block A and B for the game."
+        5: "Faculty takes attendance of students and I am place of B block where faculty gives there attendance"
     } as Record<number, string>,
     theta: {
         1: "Close to tools but calm and neat, A never-ending place to sit. Search the sign that has no end— Your next clue waits where curves bend.",
@@ -157,6 +158,8 @@ export default function StudentDashboard() {
     const [showFinalModal, setShowFinalModal] = useState(false);
     const [showFinale, setShowFinale] = useState(false);
 
+    const [isDisqualified, setIsDisqualified] = useState(false);
+
     // 1. Initialize User from LocalStorage
     useEffect(() => {
         const storedUser = localStorage.getItem('currentUser');
@@ -198,6 +201,8 @@ export default function StudentDashboard() {
                 setCurrentStage(data.current_stage || 0);
                 setGameStatus(data.status || 'active');
                 setRound2Password(data.round2_password || '');
+                setIsDisqualified(data.isDisqualified || false); // <--- WATCH DISQUALIFICATION
+
                 // Priority: Use createdAt (ServerTimestamp) if available, else startedAt (Legacy Number)
                 const joinTime = data.createdAt || data.startedAt;
                 if (joinTime) {
@@ -256,6 +261,59 @@ export default function StudentDashboard() {
 
         return () => clearInterval(interval);
     }, [isGameActive, globalStartTime, teamJoinedAt, teamFinishedAt]);
+
+    // 4. ANTI-CHEAT: THREE-STRIKE SYSTEM
+    const violationCount = useRef(0);
+
+    useEffect(() => {
+        if (!user?.teamId || isDisqualified) return;
+
+        // A. TAB SWITCH LISTENER
+        const handleVisibilityChange = async () => {
+            if (document.hidden) {
+                violationCount.current += 1;
+
+                if (violationCount.current === 1) {
+                    toast.error("⚠️ WARNING: Don't switch tabs! Next time you will be DISQUALIFIED.", { duration: 5000, icon: '🚨' });
+                } else if (violationCount.current >= 2) {
+                    // PERMANENT BAN
+                    try {
+                        await updateDoc(doc(db, 'teams', user.teamId), { isDisqualified: true });
+                    } catch (e) {
+                        console.error("Ban failed", e);
+                    }
+                }
+            }
+        };
+
+        // B. BACK BUTTON LISTENER (Instant Death)
+        const handleBackAttempt = async () => {
+            // Immediately ban on back button attempt
+            try {
+                await updateDoc(doc(db, 'teams', user.teamId), { isDisqualified: true });
+            } catch (e) {
+                console.error("Ban failed", e);
+            }
+        };
+
+        // Trap Back Button
+        window.history.pushState(null, "", window.location.href);
+
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+        window.addEventListener("popstate", handleBackAttempt);
+
+        // C. PREVENT CONTEXT MENU (Right Click)
+        const handleContextMenu = (e: MouseEvent) => e.preventDefault();
+        document.addEventListener('contextmenu', handleContextMenu);
+
+
+        // CLEANUP
+        return () => {
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+            window.removeEventListener("popstate", handleBackAttempt);
+            document.removeEventListener('contextmenu', handleContextMenu);
+        };
+    }, [user?.teamId, isDisqualified]);
 
     // 3. Derived State
     const theme = THEME_CONFIG[user?.house || 'Default'] || THEME_CONFIG['Default'];
@@ -440,14 +498,31 @@ export default function StudentDashboard() {
         );
     }
 
+    if (isDisqualified) {
+        return (
+            <div className="h-screen w-screen bg-black flex flex-col items-center justify-center text-center p-8 z-50 fixed inset-0">
+                <h1 className="text-6xl md:text-8xl font-bold text-red-600 mb-4 font-nosifer tracking-widest drop-shadow-[0_0_30px_rgba(220,38,38,0.8)]">ELIMINATED</h1>
+                <div className="w-full max-w-md h-1 bg-gradient-to-r from-transparent via-red-600 to-transparent my-8" />
+                <p className="text-xl md:text-2xl text-white font-cinzel">Reason: Suspicious Activity Detected.</p>
+                <p className="text-red-400 mt-4 text-sm tracking-widest uppercase">Contact Event Admin</p>
+                <Toaster position="top-center" />
+            </div>
+        );
+    }
+
     if (isMobile) {
-        return <MobileStudentDashboard />;
+        return (
+            <>
+                <Toaster position="top-center" reverseOrder={false} />
+                <MobileStudentDashboard />
+            </>
+        );
     }
 
     return (
         <ErrorBoundary>
             <div className={`min-h-screen relative overflow-hidden font-cinzel text-white transition-all duration-1000 ${theme.bgGradient}`}>
-
+                <Toaster position="top-center" reverseOrder={false} />
                 {/* Background Texture Overlay */}
                 <div className="absolute inset-0 opacity-20 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] mix-blend-overlay" />
 

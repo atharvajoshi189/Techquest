@@ -37,6 +37,7 @@ interface Team {
 
     path?: 'alpha' | 'beta' | 'gamma' | 'delta' | 'charlie' | 'bravo' | 'theta' | 'omega';
     score?: number;
+    isDisqualified?: boolean;
 }
 
 
@@ -505,10 +506,14 @@ export default function AdminPage() {
                                                             initial={{ opacity: 0, y: 20 }}
                                                             animate={{ opacity: 1, y: 0 }}
                                                             exit={{ opacity: 0, scale: 0.9 }}
-                                                            className="relative bg-[#d7ccc8] p-3 md:p-4 rounded-md shadow-md border border-[#a1887f] flex justify-between items-center group overflow-hidden"
+                                                            className={`relative p-3 md:p-4 rounded-md shadow-md border flex justify-between items-center group overflow-hidden ${team.isDisqualified ? 'bg-red-900/40 border-red-500' : 'bg-[#d7ccc8] border-[#a1887f]'}`}
                                                         >
                                                             {/* Burnt edges effect using simple gradients */}
                                                             <div className="absolute inset-0 bg-gradient-to-r from-[#3e2723]/20 via-transparent to-[#3e2723]/20 pointer-events-none" />
+
+                                                            {team.isDisqualified && (
+                                                                <div className="absolute inset-0 z-0 bg-[url('https://www.transparenttextures.com/patterns/diagonal-stripes.png')] opacity-10" />
+                                                            )}
 
                                                             <div className="flex items-center gap-2 md:gap-4 relative z-10">
                                                                 {/* House Crest */}
@@ -523,7 +528,14 @@ export default function AdminPage() {
                                                                 </div>
 
                                                                 <div>
-                                                                    <h4 className="font-bold text-[#3e2723] text-sm md:text-lg">{team.name}</h4>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <h4 className={`font-bold text-sm md:text-lg ${team.isDisqualified ? 'text-red-400 line-through decoration-2' : 'text-[#3e2723]'}`}>{team.name}</h4>
+                                                                        {team.isDisqualified && (
+                                                                            <span className="bg-red-600 px-2 py-0.5 rounded text-[10px] font-bold text-white tracking-widest uppercase animate-pulse">
+                                                                                ⚠️ CHEATED
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
                                                                     <p className="text-[10px] md:text-xs text-[#5d4037] font-sans uppercase tracking-wide">
                                                                         {team.leader} • <span style={{ color: HOUSE_COLORS[team.house] }} className="font-bold">{team.house}</span>
                                                                         <span className="ml-2 text-[10px] md:text-xs font-bold text-yellow-500/80 tracking-widest">
@@ -535,7 +547,7 @@ export default function AdminPage() {
 
                                                             <div className="text-right relative z-10">
                                                                 <div className="font-mono text-sm md:text-lg font-bold text-[#3e2723] bg-[#efebe9] px-2 py-1 rounded inline-block shadow-inner mb-1">
-                                                                    {team.startedAt ? formatDuration(timeElapsed) : "WAITING"}
+                                                                    {team.isDisqualified ? "ELIMINATED" : (team.startedAt ? formatDuration(timeElapsed) : "WAITING")}
                                                                 </div>
                                                                 <div className="flex flex-col gap-1 text-[8px] md:text-[10px] uppercase font-bold text-[#8d6e63]">
                                                                     <span>Code: {team.passcode}</span>
