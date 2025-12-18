@@ -15,7 +15,7 @@ interface UserSession {
     teamName: string;
     leader: string;
     house: string;
-    path: 'alpha' | 'beta' | 'delta' | 'charlie' | 'bravo' | 'theta' | 'omega';
+    path: 'alpha' | 'beta' | 'charlie' | 'bravo' | 'theta' | 'omega';
     currentStage: number;
     score?: number;
 }
@@ -56,13 +56,6 @@ const CLUE_DATA = {
         3: "Not a classroom, not a mall, yet many dreams begin here small, wehere help is granted to those who try your treassure moves where futures fly. ",
         4: "I stand by the road, round and tall, Show you yourself, no glass hall. Plants around me.",
         5: "Under my giant metal crown, Athletes cheer and never frown... Come here — where champions play! "
-    } as Record<number, string>,
-    delta: {
-        1: " He knows every face, he knows every name,He guards your path each day the same.Where journeys begin and strangers wait,Your next clue rests with the man at the gate.",
-        2: "Where codes begin and concepts load,A board displays the club you chose.Events and achievements proudly stand—Your next clue waits on this zenith land.",
-        3: "Inside, Ashwa Riders shape with might;Outside, calm replaces light.Seek the seat that sways with grace—Your hidden clue is in that place.",
-        4: "Where silence rules and pages glide,Your next clue waits where readers hide.",
-        5: "Where IT minds guide every day,Their staff room stands along the way.But don’t step in—stay just outside,There your next hidden clues reside."
     } as Record<number, string>,
     charlie: {
         1: "Where guiding hearts quietly stay, The home of our fathers leads the way. Not inside—your clue is just outside— Seek the spot where wisdom seems to reside.",
@@ -297,14 +290,16 @@ export default function MobileStudentDashboard() {
         const now = Date.now();
         if (now - lastScanTime.current < 2000) return; // 2 Seconds Cooldown (Adjusted)
 
-        if (!rawValue || !user || !isGameActive || isProcessingState) return;
+        // Robustness: Trim
+        const cleanValue = rawValue?.trim();
+        if (!cleanValue || !user || !isGameActive || isProcessingState) return;
 
         setIsProcessingState(true); // Lock UI immediately
         lastScanTime.current = now; // Update scan time
 
         try {
             // 1. PARSE DATA STRICTLY
-            const parsedData = JSON.parse(rawValue);
+            const parsedData = JSON.parse(cleanValue);
             // Ensure types are correct
             const scannedStage = Number(parsedData.stage);
             const scannedPath = parsedData.path_id?.toLowerCase();
@@ -552,6 +547,9 @@ export default function MobileStudentDashboard() {
                                         if (res && res.length > 0) handleScan(res[0].rawValue);
                                     }}
                                     scanDelay={500}
+                                    onError={(error) => setScanFeedback({ type: 'error', msg: 'Camera Access Denied' })}
+                                    formats={['qr_code']}
+                                    constraints={{ facingMode: 'environment' }}
                                 // paused={scanFeedback.type === 'success'} // Optional optimization
                                 />
                                 <motion.div

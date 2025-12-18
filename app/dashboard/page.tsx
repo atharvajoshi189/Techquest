@@ -21,7 +21,7 @@ interface UserSession {
     teamName: string;
     leader: string;
     house: string;
-    path: 'alpha' | 'beta' | 'delta' | 'charlie' | 'bravo' | 'theta' | 'omega';
+    path: 'alpha' | 'beta' | 'charlie' | 'bravo' | 'theta' | 'omega';
     currentStage: number;
     score?: number;
 }
@@ -88,13 +88,6 @@ const CLUE_DATA = {
         3: " Where journeys begin with a slip or a check,Two tech gurus speak from the wall at your neck.Not the buses outside, but the desk you must seek Your next clue waits where the quotes boldly speak.",
         4: "I stand by the road, round and tall, Show you yourself, no glass hall. Plants around me.",
         5: "Under my giant metal crown, Athletes cheer and never frown... Come here — where champions play! Find me at the entrance gateway "
-    } as Record<number, string>,
-    delta: {
-        1: "Where codes begin and concepts load, A board displays the club you chose. Events and achievements proudly stand— Your next clue waits on this zenith land.",
-        2: "Where teachers sit for a peaceful bite,\nAway from students and all the light.\nFind the spot where faculty eat\nYour hidden clue waits beneath a seat.",
-        3: "Inside, Ashwa Riders shape with might; Outside, calm replaces light. Seek the seat that sways with grace— Your hidden clue is in that place.",
-        4: "Where IT minds guide every day, Their staff room stands along the way. But don’t step in—stay just outside, There your next hidden clues reside.",
-        5: "I give shadow in the sun and place to sit and to cheer like audience and have fun during gamesf!"
     } as Record<number, string>,
     charlie: {
         1: "Where guiding hearts quietly stay, The home of our fathers leads the way. Not inside—your clue is just outside— Seek the spot where wisdom seems to reside.",
@@ -331,7 +324,10 @@ export default function StudentDashboard() {
         const now = Date.now();
         if (now - lastScanTime.current < 2000) return; // 2s Cooldown
 
-        if (!rawValue || !user || !isGameActive || isProcessingState) return;
+        // Robustness: Trim whitespace
+        const cleanValue = rawValue?.trim();
+
+        if (!cleanValue || !user || !isGameActive || isProcessingState) return;
 
         setIsProcessingState(true);
         lastScanTime.current = now;
@@ -340,7 +336,7 @@ export default function StudentDashboard() {
             // 1. Attempts to Parse JSON (Strict Requirement)
             let payload: QRPayload;
             try {
-                payload = JSON.parse(rawValue);
+                payload = JSON.parse(cleanValue);
             } catch {
                 setScanFeedback({ type: 'error', msg: 'Invalid Rune Format!' });
                 setIsProcessingState(false);
@@ -654,8 +650,14 @@ export default function StudentDashboard() {
                                             handleScan(res[0].rawValue);
                                         }
                                     }}
+                                    onError={(error) => {
+                                        console.error(error);
+                                        setScanFeedback({ type: 'error', msg: 'Camera Error: Check Permissions' });
+                                    }}
                                     scanDelay={500}
                                     paused={scanFeedback.type === 'success'}
+                                    formats={['qr_code']}
+                                    constraints={{ facingMode: 'environment' }}
                                 />
 
                                 {/* Overlay Frame (Magical Lens) */}

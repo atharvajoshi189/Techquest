@@ -143,7 +143,7 @@ const TeamRow = ({ team, index, formattedTime }: { team: Team, index: number, fo
                                     exit={{ opacity: 0, y: -30 }}
                                     className={`ml-2 text-sm font-bold px-2 py-1 rounded-full ${scoreDelta.val > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}
                                 >
-                                    {scoreDelta.val > 0 ? '+' : ''}{scoreDelta.val}
+                                    {scoreDelta.val}
                                 </motion.span>
                             )}
                         </AnimatePresence>
