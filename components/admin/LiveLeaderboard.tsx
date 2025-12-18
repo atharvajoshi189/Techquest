@@ -31,6 +31,7 @@ interface Team {
     finishedAt?: { seconds: number };
     round2_password?: string;
     score?: number;
+    isDisqualified?: boolean;
 }
 
 interface LiveLeaderboardProps {
@@ -79,11 +80,17 @@ const TeamRow = ({ team, index, formattedTime }: { team: Team, index: number, fo
     const progress = (Math.max(0, team.current_stage - 1) / 5) * 100;
 
     // Rank Styles
+    const isDisqualified = team.isDisqualified;
+
+    // Rank Styles
     let rankIcon = <span className="text-white/20 font-mono text-xl">#{index + 1}</span>;
     let cardBorder = "border-white/5";
     let cardGlow = "";
 
-    if (index === 0) {
+    if (isDisqualified) {
+        rankIcon = <span className="text-2xl drop-shadow-[0_0_10px_rgba(220,38,38,0.8)]">💀</span>;
+        cardBorder = "border-red-600";
+    } else if (index === 0) {
         rankIcon = <span className="text-3xl drop-shadow-[0_0_10px_rgba(255,215,0,0.8)]">👑</span>;
         cardBorder = "border-yellow-500/50";
         cardGlow = "shadow-[0_0_30px_rgba(255,215,0,0.15)]";
@@ -102,12 +109,13 @@ const TeamRow = ({ team, index, formattedTime }: { team: Team, index: number, fo
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 45, damping: 12 }}
-            className={`relative rounded-xl border ${cardBorder} ${cardGlow} bg-black/40 backdrop-blur-md overflow-hidden group`}
+            className={`relative rounded-xl border ${cardBorder} ${cardGlow} ${isDisqualified ? 'bg-red-900/30' : 'bg-black/40'} backdrop-blur-md overflow-hidden group`}
         >
             <div
                 className="absolute inset-0 opacity-30 transition-opacity group-hover:opacity-50"
-                style={{ background: HOUSE_BG_GRADIENTS[team.house] || HOUSE_BG_GRADIENTS['Gryffindor'] }}
+                style={{ background: isDisqualified ? 'transparent' : (HOUSE_BG_GRADIENTS[team.house] || HOUSE_BG_GRADIENTS['Gryffindor']) }}
             />
+            {isDisqualified && <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/diagonal-stripes.png')] opacity-20" />}
 
             <div className="relative z-10 p-4 flex items-center gap-6">
                 <div className="w-12 flex justify-center flex-shrink-0">
@@ -116,18 +124,18 @@ const TeamRow = ({ team, index, formattedTime }: { team: Team, index: number, fo
 
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-1">
-                        <h3 className="text-xl font-bold text-white tracking-wide truncate">
+                        <h3 className={`text-xl font-bold tracking-wide truncate ${isDisqualified ? 'text-red-400 line-through' : 'text-white'}`}>
                             {team.name}
                         </h3>
                         <span
                             className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-white/10 text-white/60"
-                            style={{ color: HOUSE_COLORS[team.house] }}
+                            style={{ color: isDisqualified ? '#f87171' : HOUSE_COLORS[team.house] }}
                         >
                             {team.house}
                         </span>
 
                         <AnimatePresence>
-                            {scoreDelta && (
+                            {scoreDelta && !isDisqualified && (
                                 <motion.span
                                     key={scoreDelta.id}
                                     initial={{ opacity: 0, y: 10, scale: 0.5 }}
@@ -142,28 +150,34 @@ const TeamRow = ({ team, index, formattedTime }: { team: Team, index: number, fo
                     </div>
 
                     <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden relative">
-                        <motion.div
-                            className="absolute top-0 left-0 h-full rounded-full"
-                            style={{ backgroundColor: HOUSE_COLORS[team.house] || '#fff' }}
-                            initial={{ width: 0 }}
-                            animate={{ width: `${Math.min(progress, 100)}%` }}
-                            transition={{ duration: 1 }}
-                        >
-                            <div className="absolute inset-0 bg-white/30 animate-pulse" />
-                        </motion.div>
+                        {isDisqualified ? (
+                            <div className="w-full h-full bg-red-900/50" />
+                        ) : (
+                            <motion.div
+                                className="absolute top-0 left-0 h-full rounded-full"
+                                style={{ backgroundColor: HOUSE_COLORS[team.house] || '#fff' }}
+                                initial={{ width: 0 }}
+                                animate={{ width: `${Math.min(progress, 100)}%` }}
+                                transition={{ duration: 1 }}
+                            >
+                                <div className="absolute inset-0 bg-white/30 animate-pulse" />
+                            </motion.div>
+                        )}
                     </div>
                     <div className="mt-1 flex justify-between text-xs text-white/40 font-mono">
-                        <span>Completed: {Math.max(0, team.current_stage - 1)} / 5</span>
+                        <span>{isDisqualified ? 'DISQUALIFIED' : `Completed: ${Math.max(0, team.current_stage - 1)} / 5`}</span>
                         <span className="text-white/60 font-bold">SCORE: {team.score || 0}</span>
-                        {isFinished && <span className="text-green-400 font-bold animate-pulse">FINISHED</span>}
+                        {isFinished && !isDisqualified && <span className="text-green-400 font-bold animate-pulse">FINISHED</span>}
                     </div>
                 </div>
 
                 <div className="flex flex-col items-end flex-shrink-0 pl-4 border-l border-white/10">
-                    <div className="font-mono text-2xl text-cyan-200 drop-shadow-[0_0_5px_rgba(34,211,238,0.6)] tracking-widest tabular-nums">
-                        {formattedTime}
+                    <div className={`font-mono text-2xl tracking-widest tabular-nums ${isDisqualified ? 'text-red-500 font-bold text-lg' : 'text-cyan-200 drop-shadow-[0_0_5px_rgba(34,211,238,0.6)]'}`}>
+                        {isDisqualified ? "ELIMINATED" : formattedTime}
                     </div>
-                    <div className="text-[10px] uppercase tracking-widest text-cyan-700">Time Elapsed</div>
+                    <div className="text-[10px] uppercase tracking-widest text-cyan-700">
+                        {isDisqualified ? "STATUS" : "Time Elapsed"}
+                    </div>
                 </div>
             </div>
         </motion.li>
@@ -223,9 +237,12 @@ export function LiveLeaderboard({ teams }: LiveLeaderboardProps) {
         });
     }, [teams, now, tournamentStartTime, isStarted]);
 
-    // 4. Sorting
+    // 4. Sorting with Logic (Active > Disqualified)
     const sortedTeams = useMemo(() => {
-        return [...processedTeams].sort((a, b) => {
+        const activeTeams = processedTeams.filter(t => !t.isDisqualified);
+        const disqualifiedTeams = processedTeams.filter(t => t.isDisqualified);
+
+        activeTeams.sort((a, b) => {
             // Rule 1: Higher Stage
             if (a.current_stage !== b.current_stage) {
                 return b.current_stage - a.current_stage;
@@ -239,6 +256,12 @@ export function LiveLeaderboard({ teams }: LiveLeaderboardProps) {
             // Rule 3: Lower Time (Faster is better)
             return a.rawDuration - b.rawDuration;
         });
+
+        // Disqualified teams can just be appended (maybe sorted by name or check-in time, but usually order doesn't matter much in shame pile)
+        // Let's sort them by name just for consistency
+        disqualifiedTeams.sort((a, b) => a.name.localeCompare(b.name));
+
+        return [...activeTeams, ...disqualifiedTeams];
     }, [processedTeams]);
 
 
