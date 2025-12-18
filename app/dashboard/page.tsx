@@ -21,7 +21,7 @@ interface UserSession {
     teamName: string;
     leader: string;
     house: string;
-    path: 'alpha' | 'beta' | 'gamma' | 'delta' | 'charlie' | 'bravo' | 'theta' | 'omega';
+    path: 'alpha' | 'beta' | 'delta' | 'charlie' | 'bravo' | 'theta' | 'omega';
     currentStage: number;
     score?: number;
 }
@@ -88,13 +88,6 @@ const CLUE_DATA = {
         3: " Where journeys begin with a slip or a check,Two tech gurus speak from the wall at your neck.Not the buses outside, but the desk you must seek Your next clue waits where the quotes boldly speak.",
         4: "I stand by the road, round and tall, Show you yourself, no glass hall. Plants around me.",
         5: "Under my giant metal crown, Athletes cheer and never frown... Come here — where champions play! Find me at the entrance gateway "
-    } as Record<number, string>,
-    gamma: {
-        1: "He knows every face, he knows every name, He guards your path each day the same. Where journeys begin and strangers wait, Your next clue rests with the man at the gate..",
-        2: "I point the way but never walked , I speak direction without talk. ",
-        3: "Where silence rules and pages glide, Your next clue waits where readers hide.",
-        4: "Where guidance waits and work is planned,\nOutside SADC, the clues now stand.\nNot inside halls where papers stay,\nLook just beyond to find your way.",
-        5: "Always stand in front of canteen but only get waste to eat."
     } as Record<number, string>,
     delta: {
         1: "Where codes begin and concepts load, A board displays the club you chose. Events and achievements proudly stand— Your next clue waits on this zenith land.",
