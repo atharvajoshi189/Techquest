@@ -57,27 +57,6 @@ const CLUE_DATA = {
         4: "Dressed in lights and shades of green,\nA festive sight that’s always seen.\nOrnaments glow for all to see,\nFind your clue beneath the Christmas tree.",
         5: "Where silence begins, just outside the door,\nBooks rest inside, knowledge galore.\nSteps slow down, whispers stay,\nFind your clue where readers pause and stay."
     } as Record<number, string>,
-    charlie: {
-        1: "Where guiding hearts quietly stay, The home of our fathers leads the way. Not inside—your clue is just outside— Seek the spot where wisdom seems to reside.",
-        2: "Between Block A and Block B lies a lawn of green, Guarded by a board that keeps it clean. No footsteps allowed on this quiet ground— Your next clue waits just at its boundary found.",
-        3: "Where Civil minds plan stone and steel, Their staff room holds ideas real. But your clue is not inside that door— It waits just outside, on the corridor floor.",
-        4: "Where engines rest and duties start, Faculty park with careful art. Not inside the cars you’ll roam— Your next clue waits where they call home.",
-        5: "Where numbers rule and records stay, The Accounts Section leads the way. Not inside, but near this place— Your next clue waits in silent grace."
-    } as Record<number, string>,
-    bravo: {
-        1: "Where every journey inside begins,\nAnd help is offered with a smile.\nFind your clue where questions go—\nThe first desk everyone will know",
-        2: "I do not teach, yet I decide.\nI hold no class, yet futures hide.\nBetween the pen and final score,\nI guard what students wait for more.",
-        3: "Not a classroom, not a hall,\nYet many dreams begin here small.\nWhere help is granted to those who try,\nYour treasure moves where futures fly.",
-        4: "This path is broken, the clue is gone.\nSeek the admin to help you on.\n(Clue 4 Missing from instructions)",
-        5: "I hold no chalk, yet shape every class.\nI teach no lesson, yet all must pass.\nDecisions rest behind a single door—\nFind your clue where authority sits at core"
-    } as Record<number, string>,
-    theta: {
-        1: "Close to tools but calm and neat, A never-ending place to sit. Search the sign that has no end— Your next clue waits where curves bend.",
-        2: "I rise in steps but carry none, I lead somewhere yet lead to none. Search Block B where knowledge stays— Your treasure waits on unused ways.",
-        3: "Behind a desk of calm command, A guiding force for every plan. Look for the place where wisdom leads— Your treasure moves where order breeds",
-        4: "No chalk, no class, yet teachers stand, Captured still by a careful hand. Seek the wall where wisdom stays— Your next clue waits in framed displays",
-        5: "Resumes rise and interviews start, This place prepares you for your part. Seek the room where goals align— Your next clue waits where careers shine"
-    } as Record<number, string>,
     omega: {
         1: "A computer science branch that deals with bussiness management system .",
         2: "a frame in block A that sync with theme of technex.",
