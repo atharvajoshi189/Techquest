@@ -76,18 +76,18 @@ const formatTime = (ms: number) => {
 
 const CLUE_DATA = {
     alpha: {
-        1: "I used to zoom on the road, now I stand still and carry your food. Find me where wheels meet meals! ",
-        2: "Standing proud for every techie, This place welcomes you politely. ",
-        3: "Where answers end and marks begin — Seek the cell that judges if you lose or win. ",
-        4: "Engines roar, then fall to hush, Here they wait with two wheels without a rush. Find your clue among the lanes.",
-        5: "A Christmas tree standing tall and bright,\nOutside Block B, a festive sight.\nWith lights and gifts in branches free,\nFind the clue where it loves to be"
+        1: "A shiny circle, simple and bright,\nFriends gather here, smiles in sight.\nPhones go up, memories stay,\nFind me where selfies light the way.",
+        2: "Wheels don’t move, yet journeys start,\nRoutes and timings play their part.\nStudents gather, questions flow,\nFind the place where bus plans grow.",
+        3: "Where student voices find their say,\nGrowth and guidance lead the way.\nStudent Affairs shapes you well,\nFind your clue at the SADC Cell.",
+        4: "Dreams take shape and futures call,\nGuidance here prepares you all.\nSkills and paths begin to gel,\nFind your clue at the Career Development Cell.",
+        5: "Beside the swing where laughter stays,\nA looping seat curves both ways.\nNo start, no end, just a flowing line,\nFind your clue where shapes entwine."
     } as Record<number, string>,
     beta: {
-        1: "A plate of noodles and a drink so cool, A poster here makes you drool.",
-        2: "I’m the hub where minds huddle — find me! ",
-        3: " Where journeys begin with a slip or a check,Two tech gurus speak from the wall at your neck.Not the buses outside, but the desk you must seek Your next clue waits where the quotes boldly speak.",
-        4: "I stand by the road, round and tall, Show you yourself, no glass hall. Plants around me.",
-        5: "Under my giant metal crown, Athletes cheer and never frown... Come here — where champions play! Find me at the entrance gateway "
+        1: "A fresh new path where footsteps rise,\nConnecting floors before your eyes.\nIn Block B, steps lead you high,\nFind your clue where levels tie.",
+        2: "Not for bikes, but cars align,\nReserved for guides who teach and shine.\nFour wheels rest in ordered lines,\nFind your clue where faculty park their rides.",
+        3: "A frame that points to stars above,\nStanding proud where minds all move.\nIn Block A, it catches the eye,\nFind your clue where the heavens lie.",
+        4: "Dressed in lights and shades of green,\nA festive sight that’s always seen.\nOrnaments glow for all to see,\nFind your clue beneath the Christmas tree.",
+        5: "Where silence begins, just outside the door,\nBooks rest inside, knowledge galore.\nSteps slow down, whispers stay,\nFind your clue where readers pause and stay."
     } as Record<number, string>,
     charlie: {
         1: "Where guiding hearts quietly stay, The home of our fathers leads the way. Not inside—your clue is just outside— Seek the spot where wisdom seems to reside.",
@@ -97,11 +97,11 @@ const CLUE_DATA = {
         5: "Where numbers rule and records stay, The Accounts Section leads the way. Not inside, but near this place— Your next clue waits in silent grace."
     } as Record<number, string>,
     bravo: {
-        1: "Beneath the yellow Lipton sign, Where orange walls and queues align, A tiny window serves its taste— Find this stall, your clue’s in place.",
-        2: "Where tools ring loud and sparks may fly, Where ideas are built, not just passed by. Seek the place where machines awake— Your next clue waits where makers make",
-        3: "The Pallotti statue stands calm and true,Guarded by green plants fresh with dew.In open space, not hidden by wall,Find the next clue where silence calls.",
-        4: "Where data and achievements proudly stand, A colourful board made by a clever hand. Right outside the DS staffroom door, That’s the place you’re looking for.",
-        5: "Faculty takes attendance of students and I am place of B block where faculty gives there attendance"
+        1: "Where every journey inside begins,\nAnd help is offered with a smile.\nFind your clue where questions go—\nThe first desk everyone will know",
+        2: "I do not teach, yet I decide.\nI hold no class, yet futures hide.\nBetween the pen and final score,\nI guard what students wait for more.",
+        3: "Not a classroom, not a hall,\nYet many dreams begin here small.\nWhere help is granted to those who try,\nYour treasure moves where futures fly.",
+        4: "This path is broken, the clue is gone.\nSeek the admin to help you on.\n(Clue 4 Missing from instructions)",
+        5: "I hold no chalk, yet shape every class.\nI teach no lesson, yet all must pass.\nDecisions rest behind a single door—\nFind your clue where authority sits at core"
     } as Record<number, string>,
     theta: {
         1: "Close to tools but calm and neat, A never-ending place to sit. Search the sign that has no end— Your next clue waits where curves bend.",
